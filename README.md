@@ -3,7 +3,9 @@ STAT 632 final project
 
 "This dataset includes a list of active NBA players and their information taken from ESPN on 8th of September 2021."
 
-2021-2022 NBA dataset: https://www.kaggle.com/datasets/buyuknacar/202122-nba-season-active-nba-players
+Main Dataset: 2021-2022 NBA dataset: https://www.kaggle.com/datasets/buyuknacar/202122-nba-season-active-nba-players
+
+Supplementary Datasets: Past Seasons NBA datasets: https://www.basketball-reference.com/awards/all_league.html
 
 ## Variables in `active_players_2.csv` & `players.csv`
 
