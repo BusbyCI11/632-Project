@@ -1,0 +1,72 @@
+---
+title: "Exploration"
+author: "Colin Busby"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(car)
+library(MASS)
+library(dplyr)
+library(Hmisc)
+```
+
+
+```{r}
+players <- read_csv("players.csv")
+active_p <- read_csv("active_players_2.csv")
+```
+
+```{r}
+str(active_p)
+```
+
+## Remove `NaN` from `Salary`
+
+```{r}
+hist(active_p$Salary)
+```
+
+```{r}
+sum(is.na(active_p))
+#percent missing values per variable
+apply(active_p, 2, function(col)sum(is.na(col))/length(col))
+```
+
+```{r}
+#identifying the rows with NAs
+rownames(active_p)[apply(active_p, 2, anyNA)]
+#removing all observations with NAs
+ap_clean <- active_p %>% na.omit()
+```
+
+### Factors
+
+```{r}
+# Transforming Team,Position,College into factors
+ap_clean_f <- transform (
+  ap_clean,
+  fTeam = as.factor(Team),
+  fPosition = as.factor(Position),
+  fCollege = as.factor(College)
+)
+```
+
+```{r}
+str(ap_clean_f)
+```
+
+```{r}
+colSums(is.na(ap_clean_f))
+```
+
+
