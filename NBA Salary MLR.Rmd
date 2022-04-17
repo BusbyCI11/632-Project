@@ -11,21 +11,18 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
+library(tidyverse)
 library(randomForest)
 library(parallel)
 library(rpart)
 library(readr)
-library(tidyverse)
 library(janitor)
-library(ggplot2)
 library(car)
 library(MASS)
-library(dplyr)
 library(Hmisc)
 ```
 
 ```{r}
-#set.seed(999) # set seed for reproducibility
 summary(lmfull <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_clean_f))
 ```
 
@@ -71,3 +68,18 @@ rf3 <- randomForest(Salary ~ .-Team-Position-College-fCollege-Height-Name, data=
 rf_preds_3 <- predict(rf3, type = "response")
 varImpPlot(rf3, type=1, main=" ")
 ```
+
+## Plots
+
+```{r}
+ggplot(data=ap_clean_f) +
+  geom_point(mapping = aes(x = Age, y = Salary)) + 
+  facet_wrap(~ fPosition, nrow = 3)
+```
+
+```{r}
+ggplot(data = ap_clean_f, mapping = aes(x = Age, y = Salary)) +
+  geom_point(mapping = aes(color = fPosition)) +
+  geom_smooth(data = filter(ap_clean_f, fPosition == "PG"), color = "red", se = FALSE)
+```
+
