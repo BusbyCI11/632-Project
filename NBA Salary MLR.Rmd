@@ -1,0 +1,73 @@
+---
+title: "Multiple Linear Regression"
+author: "Colin Busby"
+date: '2022-04-16'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(randomForest)
+library(parallel)
+library(rpart)
+library(readr)
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(car)
+library(MASS)
+library(dplyr)
+library(Hmisc)
+```
+
+```{r}
+#set.seed(999) # set seed for reproducibility
+summary(lmfull <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_clean_f))
+```
+
+```{r}
+summary(lm_2 <- lm(Salary ~ fPosition+fTeam+Age+Height_i+Weight, data=ap_clean_f))
+```
+
+```{r}
+summary(lm_3 <- lm(Salary ~ fPosition+Age+Height_i+Weight, data=ap_clean_f))
+```
+
+```{r}
+summary(lm_3 <- lm(Salary ~ fPosition+Age+Weight, data=ap_clean_f))
+```
+
+```{r}
+summary(lm_4 <- lm(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight, data=ap_clean_f))
+```
+
+```{r}
+anova(lmfull, lm_2, lm_3, lm_4)
+```
+
+## Random Forest
+
+```{r}
+set.seed(999)
+rf1 <- randomForest(Salary ~ fTeam+fPosition+Age+Height_i+Weight, data=ap_clean_f, importance=TRUE)
+rf_preds <- predict(rf1, type = "response")
+varImpPlot(rf1, type=1, main=" ")
+```
+
+```{r}
+set.seed(999)
+rf2 <- randomForest(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight, data=ap_clean_f, importance=TRUE)
+rf_preds_1 <- predict(rf2, type = "response")
+varImpPlot(rf2, type=1, main=" ")
+```
+
+```{r}
+set.seed(999)
+rf3 <- randomForest(Salary ~ .-Team-Position-College-fCollege-Height-Name, data=ap_clean_f, n.var = 10, importance=TRUE)
+rf_preds_3 <- predict(rf3, type = "response")
+varImpPlot(rf3, type=1, main=" ")
+```
