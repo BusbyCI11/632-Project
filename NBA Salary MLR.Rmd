@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+# USE `pl_clean_f` instead of `ap_clean_f`, as it contains `Points`, `Rebounds`, and `Assists`
+
 ```{r}
 library(tidyverse)
 library(randomForest)

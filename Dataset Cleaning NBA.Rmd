@@ -71,4 +71,41 @@ str(ap_clean_f)
 colSums(is.na(ap_clean_f))
 ```
 
+## Adding Rebounds, Points and Assists from `players.csv` to `ap_clean_f`
+
+### Clean `players.csv`
+
+```{r}
+sum(is.na(players))
+#percent missing values per variable
+apply(players, 2, function(col)sum(is.na(col))/length(col))
+rm(players_clean)
+```
+
+```{r}
+#identifying the rows with NAs
+rownames(players)[apply(players, 2, anyNA)]
+#removing all observations with NAs
+players_clean <- players %>% drop_na(Salary)
+```
+
+```{r}
+players_clean
+```
+```{r}
+# Transforming Team,Position,College into factors
+pl_clean_f <- transform (
+  players_clean,
+  fTeam = as.factor(Team),
+  fPosition = as.factor(Position),
+  fCollege = as.factor(College)
+)
+```
+
+```{r}
+# bind_cols(ap_clean_f, players_clean['Points'])
+# bind_cols(ap_clean_f, players_clean['Rebounds'])
+# bind_cols(ap_clean_f, players_clean['Assists'])
+```
+
 
