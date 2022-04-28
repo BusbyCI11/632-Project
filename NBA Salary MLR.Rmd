@@ -9,8 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-# USE `pl_clean_f` instead of `ap_clean_f`, as it contains `Points`, `Rebounds`, and `Assists`
+## ~~USE `pl_clean_f` instead of `ap_clean_f`, as it contains `Points`, `Rebounds`, and `Assists`~~ Don't, it fucks up the dimensions(?), and I haven't figured out why or how to fix it
 
 ```{r}
 library(tidyverse)
@@ -27,6 +26,7 @@ library(Hmisc)
 ```{r}
 summary(lmfull <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_clean_f))
 ```
+
 
 ```{r}
 summary(lm_2 <- lm(Salary ~ fPosition+fTeam+Age+Height_i+Weight, data=ap_clean_f))
@@ -45,8 +45,32 @@ summary(lm_4 <- lm(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+
 ```
 
 ```{r}
-anova(lmfull, lm_2, lm_3, lm_4)
+anova(lm_3 ,lm_4, lm_2,lmfull)
 ```
+
+## Check Model with AIC
+
+```{r}
+lm_step <- step(lmfull)
+```
+
+```{r}
+anova(lm_4, lm_step, lm_2, lmfull)
+```
+
+
+## Model Checking
+
+Right-hand outliers in `Normality of Residuals` are most likely the highly-paid players such as Steph Curry (Need to check)
+
+```{r}
+performance::check_model(lm_step)
+```
+
+```{r}
+performance::check_model(lm_4)
+```
+
 
 ## Random Forest
 
@@ -83,5 +107,27 @@ ggplot(data=ap_clean_f) +
 ggplot(data = ap_clean_f, mapping = aes(x = Age, y = Salary)) +
   geom_point(mapping = aes(color = fPosition)) +
   geom_smooth(data = filter(ap_clean_f, fPosition == "PG"), color = "red", se = FALSE)
+```
+## Random Forest Plots (Experimenting)
+
+```{r}
+#install.packages("plotmo")
+library(plotmo)   # for the plotres function
+plotres(lm_step)
+```
+
+```{r}
+# Plots the trees of a randomForest
+
+#install.packages("party")
+library(party)
+x <- ctree(Salary ~ fPosition + Age + Weight, data=ap_clean_f)
+plot(x, type="simple")
+```
+
+```{r}
+# `plot(randomForest(), log="y")` Plot the error rates or MSE of a randomForest object
+
+plot(randomForest(Salary ~ fPosition + Age + Weight, data=ap_clean_f, keep.forest=FALSE, ntree=500), log="y")
 ```
 
