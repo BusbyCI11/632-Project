@@ -1,0 +1,90 @@
+---
+title: "Scratch Paper"
+author: "Colin Busby"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# install.packages("rstatix")
+```
+
+
+```{r}
+library(tidyverse)
+library(randomForest)
+library(parallel)
+library(rpart)
+library(readr)
+library(janitor)
+library(car)
+library(MASS)
+library(Hmisc)
+library(rstatix)
+```
+
+## Tidyverse Experimenting - DON'T USE
+
+```{r}
+my_data <- as_tibble(ap_clean_f)
+class(my_data)
+```
+
+```{r}
+my_data
+```
+
+### Random Forest Confusion Matrix - DON'T USE, NOT WORKING; Mutate() and if_else() good examples
+
+`Salary` is not a binary response, so table is too large ("[ reached getOption("max.print") -- omitted 296 rows ]").
+
+Possible way is to do what Alex and Winnie did, with cut-off for data i.e. Salary > 0.7 as 0,1.  Will probably need to ask about this.
+
+Not working
+
+```{r}
+# my_data$fSalary %>% mutate(my_data, fSalary=if_else(Salary >= quantile(Salary, probs = 0.75), 1, 0))
+# #set.seed(999)
+# rf4 <- randomForest(Salary ~ fPosition + Age + Weight, data=my_data, n.var = 10, importance=TRUE)
+# rf_preds_4 <- predict(rf4, type = "response")
+# varImpPlot(rf4, type=1, main=" ")
+```
+
+```{r}
+# tb <- table(actual = my_data$fSalary, predicted = rf_preds_4)
+# addmargins(tb)
+```
+
+## Forest - Numerical Data
+
+```{r}
+# Split into Train and Validation sets
+# Training Set : Validation Set = 70 : 30 (random)
+set.seed(100)
+train <- sample(nrow(ap_clean_f), 0.7*nrow(ap_clean_f), replace = FALSE)
+TrainSet <- ap_clean_f[train,]
+ValidSet <- ap_clean_f[-train,]
+summary(TrainSet)
+summary(ValidSet)
+```
+
+```{r}
+# Create a Random Forest model with default parameters
+model1 <- randomForest(Salary ~ . - College - Team - Name - fCollege - fTeam, data = TrainSet, importance = TRUE)
+model1
+```
+
+```{r}
+# WIP
+
+#ap_clean_college <- active_p[!(is.na(active_p$Salary)), ]
+#ap_cf_wo <- subset(ap_clean_f, !score %in% identify_outliers(ap_clean_f, "score")$score)
+```
+
+
+
+

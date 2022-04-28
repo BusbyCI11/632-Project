@@ -20,6 +20,7 @@ library(car)
 library(MASS)
 library(dplyr)
 library(Hmisc)
+library(forcats)
 ```
 
 
@@ -69,6 +70,40 @@ str(ap_clean_f)
 
 ```{r}
 colSums(is.na(ap_clean_f))
+```
+
+## Setting `NA` as a factor level for `fCollege` - Not Necessary, `nan` is NA in ap_clean_f
+
+https://stackoverflow.com/questions/27195956/convert-na-into-a-factor-level
+
+```{r}
+#rm(ap_clean_college)
+```
+
+```{r}
+#identifying the rows with NAs
+#rownames(active_p)[apply(active_p, 2, anyNA)]
+#removing all observations with NAs
+#ap_clean_college <- active_p %>% na.omit()
+ap_clean_college <- active_p[!(is.na(active_p$Salary)), ]
+```
+
+```{r}
+# Transforming Team,Position,College into factors
+ap_cc_f <- transform (
+  ap_clean_college,
+  fTeam = as.factor(Team),
+  fPosition = as.factor(Position),
+  fCollege = as.factor(College)
+)
+```
+
+```{r}
+str(ap_cc_f)
+```
+
+```{r}
+colSums(is.na(ap_cc_f))
 ```
 
 ## Adding Rebounds, Points and Assists from `players.csv` to `ap_clean_f`
