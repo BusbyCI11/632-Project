@@ -77,7 +77,9 @@ anova(lm_4, lm_step, lm_2, lmfull)
 
 ## Model Checking
 
-Right-hand outliers in `Normality of Residuals` are most likely the highly-paid players such as Steph Curry (Need to check)
+Right-hand outliers in `Normality of Residuals` are most likely the highly-paid players such as Stephen Curry (Need to check).
+
+`Homogeneity of Variance` graph shows non-homogeneous variance, need to fix (or attempt to).
 
 ```{r}
 performance::check_model(lm_step)
@@ -145,5 +147,41 @@ plot(x, type="simple")
 # `plot(randomForest(), log="y")` Plot the error rates or MSE of a randomForest object
 
 plot(randomForest(Salary ~ fPosition + Age + Weight, data=ap_clean_f, keep.forest=FALSE, ntree=500), log="y")
+```
+
+## Questions
+
+It would be interesting to see, barring super-stars like Steph Curry, how race factors into the salaries of NBA players.  Do white players make more than Black players?  Is it the opposite, or is it a non-factor?
+
+## Tidyverse Experimenting - DON'T USE
+
+```{r}
+my_data <- as_tibble(ap_clean_f)
+class(my_data)
+```
+
+```{r}
+my_data
+```
+
+### Random Forest Confusion Matrix - DON'T USE, NOT WORKING; Mutate() and if_else() good examples
+
+`Salary` is not a binary response, so table is too large ("[ reached getOption("max.print") -- omitted 296 rows ]").
+
+Possible way is to do what Alex and Winnie did, with cut-off for data i.e. Salary > 0.7 as 0,1.  Will probably need to ask about this.
+
+Not working
+
+```{r}
+# my_data$fSalary %>% mutate(my_data, fSalary=if_else(Salary >= quantile(Salary, probs = 0.75), 1, 0))
+# #set.seed(999)
+# rf4 <- randomForest(Salary ~ fPosition + Age + Weight, data=my_data, n.var = 10, importance=TRUE)
+# rf_preds_4 <- predict(rf4, type = "response")
+# varImpPlot(rf4, type=1, main=" ")
+```
+
+```{r}
+# tb <- table(actual = my_data$fSalary, predicted = rf_preds_4)
+# addmargins(tb)
 ```
 
