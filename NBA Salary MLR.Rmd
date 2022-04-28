@@ -23,6 +23,22 @@ library(MASS)
 library(Hmisc)
 ```
 
+## Data Exploration
+
+```{r}
+dim(ap_clean_f)
+```
+```{r}
+str(ap_clean_f)
+```
+
+```{r}
+pairs(Salary ~ Age + Height_i + Weight, data = ap_clean_f)
+```
+
+
+## Model Creation
+
 ```{r}
 summary(lmfull <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_clean_f))
 ```
