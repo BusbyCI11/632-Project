@@ -1,0 +1,26 @@
+---
+title: "NBA Scratch"
+author: "Colin Busby"
+date: '2022-04-18'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Plots
+
+```{r}
+ggplot(data=ap_clean_f) +
+  geom_point(mapping = aes(x = Age, y = Salary)) + 
+  facet_wrap(~ fPosition, nrow = 3)
+```
+
+```{r}
+ggplot(data = ap_clean_f, mapping = aes(x = Age, y = Salary)) +
+  geom_point(mapping = aes(color = fPosition)) +
+  geom_smooth(data = filter(ap_clean_f, fPosition == "PG"), color = "red", se = FALSE)
+```
+

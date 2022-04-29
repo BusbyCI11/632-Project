@@ -28,6 +28,7 @@ library(Hmisc)
 ```{r}
 dim(ap_clean_f)
 ```
+
 ```{r}
 str(ap_clean_f)
 ```
@@ -36,13 +37,11 @@ str(ap_clean_f)
 pairs(Salary ~ Age + Height_i + Weight, data = ap_clean_f)
 ```
 
-
 ## Model Creation
 
 ```{r}
 summary(lmfull <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_clean_f))
 ```
-
 
 ```{r}
 summary(lm_2 <- lm(Salary ~ fPosition+fTeam+Age+Height_i+Weight, data=ap_clean_f))
@@ -74,7 +73,6 @@ lm_step <- step(lmfull)
 anova(lm_4, lm_step, lm_2, lmfull)
 ```
 
-
 ## Model Checking
 
 Right-hand outliers in `Normality of Residuals` are most likely the highly-paid players such as Stephen Curry (Need to check).
@@ -88,7 +86,6 @@ performance::check_model(lm_step)
 ```{r}
 performance::check_model(lm_4)
 ```
-
 
 ## Random Forest
 
@@ -126,6 +123,7 @@ ggplot(data = ap_clean_f, mapping = aes(x = Age, y = Salary)) +
   geom_point(mapping = aes(color = fPosition)) +
   geom_smooth(data = filter(ap_clean_f, fPosition == "PG"), color = "red", se = FALSE)
 ```
+
 ## Random Forest Plots (Experimenting)
 
 ```{r}
@@ -151,5 +149,4 @@ plot(randomForest(Salary ~ fPosition + Age + Weight, data=ap_clean_f, keep.fores
 
 ## Questions
 
-It would be interesting to see, barring super-stars like Steph Curry, how race factors into the salaries of NBA players.  Do white players make more than Black players?  Is it the opposite, or is it a non-factor?
-
+It would be interesting to see, barring super-stars like Steph Curry, how race factors into the salaries of NBA players. Do white players make more than Black players? Is it the opposite, or is it a non-factor?

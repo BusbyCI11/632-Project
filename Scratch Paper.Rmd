@@ -27,7 +27,7 @@ library(Hmisc)
 library(rstatix)
 ```
 
-## Tidyverse Experimenting - DON'T USE
+## Tidyverse Experimenting
 
 ```{r}
 my_data <- as_tibble(ap_clean_f)

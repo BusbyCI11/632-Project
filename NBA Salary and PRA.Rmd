@@ -1,0 +1,66 @@
+---
+title: "NBA pl_clean_f"
+author: "Colin Busby"
+date: '2022-04-18'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(randomForest)
+library(parallel)
+library(rpart)
+library(readr)
+library(janitor)
+library(car)
+library(MASS)
+library(Hmisc)
+```
+# Multiple Linear Regression
+
+## Look at salaries of players
+
+Look at the salaries of players and determine the biggest factors in determining salary.
+
+### Full Model
+
+`Team`, `Position`, and `College` removed from model after being turned into factors `fTeam`, `fPosition`, and `College`, respectively.
+
+`Points`, `Rebounds`, and `Assists` not included due to salaries being determined before beginning of season, and the stats are from the end of the season.
+
+```{r}
+lmfull <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=pl_clean_f)
+summary(lmfull)
+```
+
+### Removal of `fTeam` Due to lack of significance
+
+```{r}
+lm_r1 <- lm(Salary ~ fPosition+fCollege+Age+Height_i+Weight, data=pl_clean_f)
+summary(lm_r1)
+```
+
+### Removal of `fCollege` Due to lack of significance
+
+With several exceptions (`Weber State,Lehigh,Fresno State,Davidson`), the college
+
+```{r}
+lm_r2 <- lm(Salary ~ fPosition+Age+Height_i+Weight, data=pl_clean_f)
+summary(lm_r2)
+```
+
+### Removal of `Height_i` Due to lack of significance
+
+Given `Height_i`s p-value of `0.994822`, it is removed from the model.
+
+```{r}
+lm_r3 <- lm(Salary ~ fPosition+Age+Weight, data=pl_clean_f)
+summary(lm_r3)
+```
+
+
+

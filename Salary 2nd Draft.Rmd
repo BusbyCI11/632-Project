@@ -1,0 +1,192 @@
+---
+title: "Salary MLR 2nd Draft"
+author: "Colin Busby"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(randomForest)
+library(parallel)
+library(rpart)
+library(readr)
+library(janitor)
+library(car)
+library(MASS)
+library(Hmisc)
+library(rstatix)
+library(forcats)
+library(GGally)
+library(performance)
+```
+
+# Intro
+
+blahblahblah Hi
+
+Question - How do the various stats from the ESPN website explain the salaries of NBA players?
+
+Where data is from
+
+Variables explained
+
+## Data Exploration
+
+```{r}
+# Load dataset
+
+players <- read_csv("players.csv")
+active_p <- read_csv("active_players_2.csv")
+```
+
+```{r}
+# Structure/Dimensions of the data.frame
+str(active_p)
+```
+
+```{r}
+# Number of columns containing `NA` or `NaN`
+colSums(is.na(active_p))
+```
+
+## Data Cleaning
+
+```{r}
+#identifying the rows with NAs
+rownames(active_p)[apply(active_p, 2, anyNA)]
+
+#removing all `Salary` observations with NAs
+ap_cl <- active_p[!(is.na(active_p$Salary)), ]
+```
+
+```{r}
+# Checking for leftover `NA` after cleaning
+rownames(active_p)[apply(ap_cl, 2, anyNA)]
+```
+
+```{r}
+# Transforming Team,Position,College into factors
+ap_cl_f <- transform (
+  ap_cl,
+  fTeam = as.factor(Team),
+  fPosition = as.factor(Position),
+  fCollege = as.factor(College)
+)
+```
+
+```{r}
+# Rename `fCollege` factor level "nan" as "None"
+# levels(ap_cl_f$fCollege)[levels(ap_cl_f$fCollege)=="nan"] <- "None"
+#levels(ap_cl_f$fCollege)
+```
+
+```{r}
+str(ap_cl_f)
+```
+
+## Model Building
+
+### Initial Graphs
+
+```{r}
+# The diagonal consists of the densities of the three variables and the upper panels consist of the correlation coefficients between the variables.
+
+ggpairs(ap_cl_f, columns = c(9,4,6,7), cardinality_threshold = NULL)
+```
+
+### Full(Initial) Model
+
+```{r}
+lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f)
+summary(lm1)
+```
+
+
+```{r}
+summary(lm2 <- lm(Salary ~ fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f))
+```
+
+```{r}
+summary(lm3 <- lm(Salary ~ fPosition+fCollege+Age+Weight, data=ap_cl_f))
+```
+
+```{r}
+summary(lm4 <- lm(Salary ~ fPosition+Age+Weight, data=ap_cl_f))
+```
+
+```{r}
+anova(lm4,lm3,lm2,lm1)
+```
+### Stepwise Model Selection
+
+```{r}
+summary(lm_step <- step(lm1))
+```
+
+## Model Checking
+
+### Plots
+
+```{r}
+ par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
+ plot(lm1, 1:2)
+```
+
+```{r}
+performance::check_model(lm_step)
+```
+
+
+### Outliers
+
+While there are outliers in the data, their removal does not change the final model, in fact decreasing the adjusted $R^2$.  Therefore, they shall be left in the dataset.
+
+```{r}
+# Remove outliers from dataframe
+ap_cl_f_wo <- ap_cl_f[-which(abs(rstandard(lm_step)) > 2),]
+```
+
+```{r}
+lm1_wo <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f_wo)
+summary(lm_step_wo <- step(lm1_wo))
+```
+
+### Box Cox
+
+```{r}
+boxcox(lm1,lambda=seq(-1, 1, by=0.05))
+```
+
+```{r}
+summary(lm1_p1 <- powerTransform(lm1))
+```
+
+```{r}
+Y1 <- coef(lm1_p1, round=TRUE)
+summary(lm1_trans <- lm(bcPower(Salary, Y1)~fTeam + fPosition + fCollege + Age + Height_i + Weight, data = ap_cl_f))
+```
+
+```{r}
+summary(lm_step_trans <- step(lm1_trans))
+```
+
+```{r}
+performance::check_model(lm_step_trans)
+```
+
+```{r}
+performance::compare_performance(lm1,lm2,lm3,lm_step, rank = TRUE)
+```
+```{r}
+compare_performance(lm_step_trans,lm1_trans, rank = TRUE)
+```
+
+```{r}
+plot(binned_residuals(lm_step))
+```
+
