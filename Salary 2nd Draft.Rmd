@@ -117,38 +117,59 @@ lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f)
 summary(lm1)
 ```
 
-
-
 #### Inital Tests
-
-
 
 ```{r}
 shapiro.test(resid(lm1))
 bptest(lm1)
 ```
 
+### Check for Polynomial Terms
+
+`Age`, `Height_i`, and `Weight` appear to be misspecified.
+
+```{r}
+crPlots(lm1)
+```
+
+```{r}
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,2)+poly(Height_i,2)+poly(Weight,2), data=ap_cl_f))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+poly(Height_i,3)+poly(Weight,3), data=ap_cl_f))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,4)+poly(Height_i,4)+poly(Weight,4), data=ap_cl_f))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,2), data=ap_cl_f))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,3), data=ap_cl_f))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,4), data=ap_cl_f))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_cl_f))
+```
+
+The end result is that only `Age` has been misspecified, and has been re-specified as `poly(Age,3)`.
+
 ### Reduced Model
 
 ```{r}
-summary(lm2 <- lm(Salary ~ fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f))
+# Removal of `fTeam` due to no significance
+summary(lm2 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_cl_f))
 ```
 
 ```{r}
-summary(lm3 <- lm(Salary ~ fPosition+fCollege+Age+Weight, data=ap_cl_f))
+# Removal of `Height_i` due to no significance
+summary(lm3 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Weight, data=ap_cl_f))
 ```
 
 ```{r}
-summary(lm4 <- lm(Salary ~ fPosition+Age+Weight, data=ap_cl_f))
+# Removal of `fCollege`
+summary(lm4 <- lm(Salary ~ fPosition+poly(Age,3)+Weight, data=ap_cl_f))
 ```
 
 ```{r}
+lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_cl_f)
 anova(lm4,lm3,lm2,lm1)
 ```
 
 ### Stepwise Model Selection
 
 ```{r}
+lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_cl_f)
 summary(lm_step <- step(lm1))
 ```
 
@@ -157,8 +178,13 @@ summary(lm_step <- step(lm1))
 ### Plots
 
 ```{r}
+plot(hatvalues(lm_step), rstandard(lm_step_trans),xlab='Leverage', ylab='Standardized Residuals')
+```
+
+
+```{r}
  par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
- plot(lm1, 1:2)
+ plot(lm_step, 1:2)
 ```
 
 ```{r}
@@ -167,15 +193,14 @@ performance::check_model(lm_step)
 
 ### Outliers
 
-While there are outliers in the data, their removal does not change the final model, in fact decreasing the adjusted $R^2$. Therefore, they shall be left in the dataset.
-
 ```{r}
-# Remove outliers from dataframe
-ap_cl_f_wo <- ap_cl_f[-which(abs(rstandard(lm_step)) > 2),]
+# Remove outliers & high leverage from data
+ap_cl_f_wo <- ap_cl_f[-which(abs(rstandard(lm_step)) > 2 | hatvalues(lm_step) > .1),]
 ```
 
 ```{r}
-summary(lm_step_wo <- step(lm1_wo <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f_wo)))
+summary(lm1_wo <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_cl_f_wo))
+summary(lm_step_wo <- step(lm1_wo))
 ```
 
 ### Box Cox
@@ -189,22 +214,34 @@ BoxCoxTrans(ap_cl_f$Salary)
 ```
 
 ```{r}
-summary(lm_step_trans <- step(lm1_trans <- lm(log(Salary)~fTeam + fPosition + fCollege + Age + Height_i + Weight, data = ap_cl_f)))
+summary(lm_step_trans <- step(lm1_trans <- lm(log(Salary)~fTeam + fPosition + fCollege + poly(Age,3) + Height_i + Weight, data = ap_cl_f)))
 ```
 
 ```{r}
 lm_step_trans
 ```
 
+### Box-Cox w/o outliers and high leverage
+
+Very poor results compared to keeping the high leverage points and the outliers.
 
 ```{r}
-performance::check_model(lm_step_trans)
+boxcox(lm1_wo,lambda=seq(-1, 1, by=0.05))
 ```
+
+```{r}
+BoxCoxTrans(ap_cl_f_wo$Salary)
+```
+
+```{r}
+summary(lm_step_trans_wo <- step(lm1_trans_wo <- lm(log(Salary)~fTeam + fPosition + fCollege + poly(Age,3) + Height_i + Weight, data = ap_cl_f_wo)))
+```
+
 
 ### Comparing Models
 
 ```{r}
-anova(lm1,lm2,lm3,lm_step)
+anova(lm_step,lm3,lm2,lm1)
 ```
 
 ```{r}
@@ -219,10 +256,31 @@ anova(lm_step_trans,lm1_trans)
 compare_performance(lm_step_trans,lm1_trans, rank = TRUE)
 ```
 
-#### VIF
+```{r}
+performance::check_model(lm_step)
+```
+
+```{r}
+performance::check_model(lm_step_trans)
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm_step,1:2)
+plot(lm_step_trans,1:2)
+```
+
+
+### VIF
 
 ```{r}
 round(vif(lm_step),2)
 round(vif(lm_step_trans),2)
+```
+
+## Plots
+
+```{r}
+plot(hatvalues(lm_step_trans), rstandard(lm_step_trans),xlab='Leverage', ylab='Standardized Residuals')
 ```
 
