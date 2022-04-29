@@ -2,12 +2,13 @@
 title: "Salary MLR 2nd Draft"
 author: "Colin Busby"
 date: "`r Sys.Date()`"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-options(tinytex.verbose = TRUE)
 ```
 
 ```{r}
@@ -92,6 +93,29 @@ ap_cl_f <- transform (
 str(ap_cl_f)
 ```
 
+# Recoding for Logistic Regression
+
+```{r}
+# Start with `ap_cl_f` data.frame, reclassify as tibble
+
+ap_tibble <- as_tibble(ap_cl_f)
+class(ap_tibble)
+```
+
+```{r}
+# Calculate quantiles of Salary for good cutoff point
+quantile(ap_tibble$Salary, probs = seq(0,1,1/20))
+```
+
+```{r}
+ap_tibble <- ap_tibble %>% mutate(Salary.Dummy = if_else(Salary >= 8222063, 1, 0))
+```
+
+```{r}
+str(ap_tibble)
+```
+
+
 ## Model Building
 
 ### Initial Graphs
@@ -99,23 +123,23 @@ str(ap_cl_f)
 ```{r}
 # The diagonal consists of the densities of the three variables and the upper panels consist of the correlation coefficients between the variables.
 
-ggpairs(ap_cl_f, columns = c(9,4,6,7), cardinality_threshold = NULL)
+ggpairs(ap_tibble, columns = c(9,4,6,7), cardinality_threshold = NULL)
 ```
 
 ```{r}
-ggplot(ap_cl_f, aes(Salary)) +
+ggplot(ap_tibble, aes(Salary)) +
   geom_histogram(bins = 30)
 ```
 
 ```{r}
-ggplot(ap_cl_f, aes(log(Salary))) +
+ggplot(ap_tibble, aes(log(Salary))) +
   geom_histogram(bins = 30)
 ```
 
 ### Full(Initial) Model
 
 ```{r}
-lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f)
+lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble)
 summary(lm1)
 ```
 
@@ -135,13 +159,13 @@ crPlots(lm1)
 ```
 
 ```{r}
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,2)+poly(Height_i,2)+poly(Weight,2), data=ap_cl_f))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+poly(Height_i,3)+poly(Weight,3), data=ap_cl_f))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,4)+poly(Height_i,4)+poly(Weight,4), data=ap_cl_f))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,2), data=ap_cl_f))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,3), data=ap_cl_f))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,4), data=ap_cl_f))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_cl_f))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,2)+poly(Height_i,2)+poly(Weight,2), data=ap_tibble))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+poly(Height_i,3)+poly(Weight,3), data=ap_tibble))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,4)+poly(Height_i,4)+poly(Weight,4), data=ap_tibble))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,2), data=ap_tibble))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,3), data=ap_tibble))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,4), data=ap_tibble))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble))
 ```
 
 The end result is that only `Age` has been misspecified, and has been re-specified as `poly(Age,3)`.
@@ -150,28 +174,28 @@ The end result is that only `Age` has been misspecified, and has been re-specifi
 
 ```{r}
 # Removal of `fTeam` due to no significance
-summary(lm2 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_cl_f))
+summary(lm2 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble))
 ```
 
 ```{r}
 # Removal of `Height_i` due to no significance
-summary(lm3 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Weight, data=ap_cl_f))
+summary(lm3 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Weight, data=ap_tibble))
 ```
 
 ```{r}
 # Removal of `fCollege`
-summary(lm4 <- lm(Salary ~ fPosition+poly(Age,3)+Weight, data=ap_cl_f))
+summary(lm4 <- lm(Salary ~ fPosition+poly(Age,3)+Weight, data=ap_tibble))
 ```
 
 ```{r}
-lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_cl_f)
+lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble)
 anova(lm4,lm3,lm2,lm1)
 ```
 
 ### Stepwise Model Selection
 
 ```{r}
-lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_cl_f)
+lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble)
 summary(lm_step <- step(lm1))
 ```
 
@@ -181,7 +205,7 @@ summary(lm_step <- step(lm1))
 
 ```{r}
 # Remove outliers & high leverage from data
-ap_cl_f_wo <- ap_cl_f[-which(abs(rstandard(lm_step)) > 2 | hatvalues(lm_step) > .1),]
+ap_cl_f_wo <- ap_tibble[-which(abs(rstandard(lm_step)) > 2 | hatvalues(lm_step) > .1),]
 ```
 
 ```{r}
@@ -196,11 +220,11 @@ boxcox(lm1,lambda=seq(-1, 1, by=0.05))
 ```
 
 ```{r}
-BoxCoxTrans(ap_cl_f$Salary)
+BoxCoxTrans(ap_tibble$Salary)
 ```
 
 ```{r}
-summary(lm_step_trans <- step(lm1_trans <- lm(log(Salary)~fTeam + fPosition + fCollege + poly(Age,3) + Height_i + Weight, data = ap_cl_f)))
+summary(lm_step_trans <- step(lm1_trans <- lm(log(Salary)~fTeam + fPosition + fCollege + poly(Age,3) + Height_i + Weight, data = ap_tibble)))
 ```
 
 ```{r}
@@ -277,6 +301,9 @@ plot(lm_step, 1:2)
 performance::check_model(lm_step)
 ```
 
+
+
+
 ## Final Model
 
 $log(\widehat{Salary})=13.330870-0.489098(fPositionF)+0.73758(fPositionG)+0.174562(fPositionPF)+0.711135(fPositionPG)\\+0.316997(fPositionSF)+0.403881(fPositionSG)+6.769471(Age)-3.110142(Age)^2-3.153257(Age)^3+0.008296(Weight)$
@@ -296,7 +323,7 @@ exp(predict(lm_step_trans, newdata, type='response'))
 ```
 
 ```{r}
-newdata <- data.frame(fPosition=ap_cl_f$fPosition, Age=ap_cl_f$Age, Weight = ap_cl_f$Weight)
+newdata <- data.frame(fPosition=ap_tibble$fPosition, Age=ap_tibble$Age, Weight = ap_tibble$Weight)
 exp(predict(lm_step_trans, newdata, type='response'))
 ```
 
@@ -305,3 +332,174 @@ exp(predict(lm_step_trans, newdata, type='response'))
 Given that the estimated/predicted salaries are way way off, and that the adjusted $R^2$ of the `lm_step_trans` is only $0.171$, there are obviously other predictors responsible for the majority of variance in the salaries of NBA players, most likely factors such as points scored, assists, rebounds, etc.
 
 It was never expected that `Age`, `Weight`, and `fPosition` would be responsible for explaining the majority of variance.
+
+### Linear Regression pr - Need to Change Variable Names
+
+```{r}
+plot(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight, data=ap_tibble)
+
+
+pairs(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble)
+
+pairs(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight, data=ap_tibble)
+
+lmst <- step(lm1)
+summary(lmst)
+
+plot(lm1, which = 1)
+plot(lm1, which = 2)
+
+plot(lm4, which = 1)
+plot(lm4, which = 2)
+
+
+head(ap_tibble)
+
+#check 
+
+library(car)
+library(MASS)
+boxcox(lm1, lambda = seq(-2,2, by=0.05))
+summary(powerTransform(lm1))
+
+summary(lm1_log <- lm(log(Salary) ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble))
+
+AIC(lm1, lm4, lmst)
+```
+
+```{r}
+# Transforming Team,Position,College into factors
+ap_tibble <- transform (
+  ap_tibble,
+  nTeam = as.numeric(fTeam),
+  nPosition = as.numeric(fPosition),
+  nCollege = as.numeric(fCollege),
+  fSalary.Dummy = as.factor(Salary.Dummy)
+)
+
+#cross validation
+set.seed(999)
+n <-nrow(ap_tibble)
+n
+floor(0.7*n)
+
+#randomly sample 70% of the rows
+
+train <- sample(1:n, 311)
+
+data_train <- glm(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight,family=binomial, subset = train, data=ap_tibble)
+
+summary(data_train)
+```
+
+```{r}
+library(mlbench)
+tn <- ap_tibble[train,]
+test <- ap_tibble[-train,]
+
+summary(glmFit <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
+
+```
+
+```{r}
+confusionMatrix(glmFit)
+```
+
+
+```{r}
+library(mlbench)
+# Transforming Team,Position,College into factors
+ap_tibble <- transform (
+  ap_tibble,
+  nTeam = as.numeric(fTeam),
+  nPosition = as.numeric(fPosition),
+  nCollege = as.numeric(fCollege),
+  fSalary.Dummy = as.factor(Salary.Dummy)
+)
+
+#cross validation
+set.seed(999)
+n <-nrow(ap_tibble)
+n
+floor(0.7*n)
+
+#randomly sample 70% of the rows
+
+train <- sample(1:n, 311)
+summary(glmFit <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
+confusionMatrix(glmFit)
+```
+
+```{r}
+#comparing the plots
+
+plot(lm1, which = 1)
+plot(lm1, which = 2)
+
+plot(lm4, which = 1)
+plot(lm4, which = 2)
+
+
+hist(resid(lm4))
+hist(resid(lm1))
+
+par(mfrow=c(1,3), mar=c(4.5, 4.5, 2, 2))
+
+plot(ap_tibble$fPosition, rstandard(lm1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$fPosition, rstandard(lm4), xlab ="fposition", ylab = "residuals")
+
+plot(ap_tibble$Age, rstandard(lm1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Age, rstandard(lm4), xlab ="fposition", ylab = "residuals")
+
+plot(ap_tibble$Weight, rstandard(lm1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Weight, rstandard(lm4), xlab ="fposition", ylab = "residuals")
+
+#normality check 
+par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
+plot(predict(lm1), ap_tibble$Salary,
+       xlab = "Fitted Values", ylab = "Salary")
+abline()
+lines(lowess(predict(lm1), ap_tibble$Salary), col='red')
+
+plot(predict(lm4), sqrt(ap_tibble$Salary),
+       xlab = "Fitted Values", ylab = "Salary")
+lines(lowess(predict(lm4), sqrt(ap_tibble$Salary)), col='red')
+
+plot(predict(lm1), ap_tibble$Weight,
+     xlab = "Fitted Values", ylab = "Weight")
+
+plot(predict(lm4), sqrt(ap_tibble$Weight),
+     xlab = "Fitted Values", ylab = "Weight")
+
+plot(predict(lm1), ap_tibble$Age,
+     xlab = "Fitted Values", ylab = "Age")
+
+plot(predict(lm4), sqrt(ap_tibble$Age),
+     xlab = "Fitted Values", ylab = "Age")
+
+#sqrt can not be used for factors
+#plot(predict(lm4), sqrt(ap_tibble$fPosition),
+    # xlab = "Fitted Values", ylab = "Age")
+
+
+library(corrplot)
+nba.matrix <- as.matrix(ap_tibble)
+corrplot(cor(nba.matrix), is.corr = FALSE, method = "circle", type = "upper")
+
+corrplot(cor(ap_tibble %>% 
+               select(fPosition, 
+                      Age, Weight, contains("%")), 
+             use = "complete.obs"), 
+         method = "circle",type = "upper")
+
+
+library(tidyverse)
+library(PerformanceAnalytics)
+library(plotly)
+library(GGally)
+stats_salary_cor <- 
+  ap_tibble %>% 
+  select(fPosition, Age, Weight, Age:Weight, fPosition:Age, fPosition:Weight)
+ggpairs(stats_salary_cor)
+
+```
