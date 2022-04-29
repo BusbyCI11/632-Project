@@ -520,6 +520,14 @@ rf_model <- caret::train(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Heig
 
 rf_model
 ```
+```{r}
+set.seed(999)
+rf3 <- randomForest(log(Salary) ~ fPosition+Age+Height_i+Weight,
+                         data = ap_tibble, n.var = 10, importance=TRUE)
+rf_preds_3 <- predict(rf3, type = "response")
+varImpPlot(rf3, type=1, main=" ")
+```
+
 
 ```{r}
 summary(glmFit2 <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
