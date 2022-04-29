@@ -7,6 +7,7 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(tinytex.verbose = TRUE)
 ```
 
 ```{r}
@@ -24,6 +25,7 @@ library(forcats)
 library(GGally)
 library(performance)
 library(caret)
+library(lmtest)
 ```
 
 # Intro
@@ -175,22 +177,6 @@ summary(lm_step <- step(lm1))
 
 ## Model Checking
 
-### Plots
-
-```{r}
-plot(hatvalues(lm_step), rstandard(lm_step_trans),xlab='Leverage', ylab='Standardized Residuals')
-```
-
-
-```{r}
- par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
- plot(lm_step, 1:2)
-```
-
-```{r}
-performance::check_model(lm_step)
-```
-
 ### Outliers
 
 ```{r}
@@ -237,7 +223,6 @@ BoxCoxTrans(ap_cl_f_wo$Salary)
 summary(lm_step_trans_wo <- step(lm1_trans_wo <- lm(log(Salary)~fTeam + fPosition + fCollege + poly(Age,3) + Height_i + Weight, data = ap_cl_f_wo)))
 ```
 
-
 ### Comparing Models
 
 ```{r}
@@ -256,7 +241,6 @@ anova(lm_step_trans,lm1_trans)
 compare_performance(lm_step_trans,lm1_trans, rank = TRUE)
 ```
 
-
 ```{r}
 performance::check_model(lm_step)
 ```
@@ -271,7 +255,6 @@ plot(lm_step,1:2)
 plot(lm_step_trans,1:2)
 ```
 
-
 ### VIF
 
 ```{r}
@@ -284,11 +267,22 @@ round(vif(lm_step_trans),2)
 ```{r}
 plot(hatvalues(lm_step), rstandard(lm_step_trans),xlab='Leverage', ylab='Standardized Residuals')
 ```
+
+```{r}
+par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
+plot(lm_step, 1:2)
+```
+
+```{r}
+performance::check_model(lm_step)
+```
+
 ## Final Model
 
 $log(\widehat{Salary})=13.330870-0.489098(fPositionF)+0.73758(fPositionG)+0.174562(fPositionPF)+0.711135(fPositionPG)\\+0.316997(fPositionSF)+0.403881(fPositionSG)+6.769471(Age)-3.110142(Age)^2-3.153257(Age)^3+0.008296(Weight)$
 
 ### Prediction
+
 ```{r}
 # Steph Curry, Age = 34, Weigth = 185, fPosition = PG, Salary = 45780966
 newdata <- data.frame(fPosition='PG', Age=34, Weight = 185)
@@ -305,7 +299,6 @@ exp(predict(lm_step_trans, newdata, type='response'))
 newdata <- data.frame(fPosition=ap_cl_f$fPosition, Age=ap_cl_f$Age, Weight = ap_cl_f$Weight)
 exp(predict(lm_step_trans, newdata, type='response'))
 ```
-
 
 ## Conclusion
 
