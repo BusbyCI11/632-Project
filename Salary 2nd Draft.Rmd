@@ -106,7 +106,6 @@ lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f)
 summary(lm1)
 ```
 
-
 ```{r}
 summary(lm2 <- lm(Salary ~ fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f))
 ```
@@ -122,6 +121,7 @@ summary(lm4 <- lm(Salary ~ fPosition+Age+Weight, data=ap_cl_f))
 ```{r}
 anova(lm4,lm3,lm2,lm1)
 ```
+
 ### Stepwise Model Selection
 
 ```{r}
@@ -141,10 +141,9 @@ summary(lm_step <- step(lm1))
 performance::check_model(lm_step)
 ```
 
-
 ### Outliers
 
-While there are outliers in the data, their removal does not change the final model, in fact decreasing the adjusted $R^2$.  Therefore, they shall be left in the dataset.
+While there are outliers in the data, their removal does not change the final model, in fact decreasing the adjusted $R^2$. Therefore, they shall be left in the dataset.
 
 ```{r}
 # Remove outliers from dataframe
@@ -152,11 +151,12 @@ ap_cl_f_wo <- ap_cl_f[-which(abs(rstandard(lm_step)) > 2),]
 ```
 
 ```{r}
-lm1_wo <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f_wo)
-summary(lm_step_wo <- step(lm1_wo))
+summary(lm_step_wo <- step(lm1_wo <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f_wo)))
 ```
 
 ### Box Cox
+
+Despite an estimated power of $-0.33$, the Box-Cox Transformation doesn't appear to contribute aything to the model, as it results in the same reduced model with a reduced adjusted $R^2$.
 
 ```{r}
 boxcox(lm1,lambda=seq(-1, 1, by=0.05))
@@ -168,20 +168,19 @@ summary(lm1_p1 <- powerTransform(lm1))
 
 ```{r}
 Y1 <- coef(lm1_p1, round=TRUE)
-summary(lm1_trans <- lm(bcPower(Salary, Y1)~fTeam + fPosition + fCollege + Age + Height_i + Weight, data = ap_cl_f))
-```
-
-```{r}
-summary(lm_step_trans <- step(lm1_trans))
+summary(lm_step_trans <- step(lm1_trans <- lm(bcPower(Salary, Y1)~fTeam + fPosition + fCollege + Age + Height_i + Weight, data = ap_cl_f)))
 ```
 
 ```{r}
 performance::check_model(lm_step_trans)
 ```
 
+### Comparing Models
+
 ```{r}
 performance::compare_performance(lm1,lm2,lm3,lm_step, rank = TRUE)
 ```
+
 ```{r}
 compare_performance(lm_step_trans,lm1_trans, rank = TRUE)
 ```
@@ -189,4 +188,3 @@ compare_performance(lm_step_trans,lm1_trans, rank = TRUE)
 ```{r}
 plot(binned_residuals(lm_step))
 ```
-
