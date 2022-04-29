@@ -286,6 +286,13 @@ round(vif(lm_step),2)
 round(vif(lm_step_trans),2)
 ```
 
+### Correlation
+
+```{r}
+round(cor(ap_tibble),2)
+```
+
+
 ## Plots
 
 ```{r}
@@ -503,3 +510,21 @@ stats_salary_cor <-
 ggpairs(stats_salary_cor)
 
 ```
+
+# Random Forest
+
+```{r}
+rf_model <- caret::train(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
+                         data = ap_tibble,
+                         method = "rf")
+
+rf_model
+```
+
+```{r}
+summary(glmFit2 <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
+confusionMatrix(glmFit2)
+```
+
+
+
