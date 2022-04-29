@@ -199,6 +199,199 @@ lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap
 summary(lm_step <- step(lm1))
 ```
 
+### Linear Regression pr - Need to Change Variable Names
+
+```{r}
+plot(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight, data=ap_tibble)
+
+
+pairs(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble)
+
+pairs(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight, data=ap_tibble)
+
+lmst <- step(lm1)
+summary(lmst)
+
+plot(lm1, which = 1)
+plot(lm1, which = 2)
+
+plot(lm4, which = 1)
+plot(lm4, which = 2)
+
+
+head(ap_tibble)
+
+#check 
+
+library(car)
+library(MASS)
+boxcox(lm1, lambda = seq(-2,2, by=0.05))
+summary(powerTransform(lm1))
+
+summary(lm1_log <- lm(log(Salary) ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble))
+
+AIC(lm1, lm4, lmst)
+```
+
+```{r}
+# Transforming Team,Position,College into factors
+ap_tibble <- transform (
+  ap_tibble,
+  nTeam = as.numeric(fTeam),
+  nPosition = as.numeric(fPosition),
+  nCollege = as.numeric(fCollege),
+  fSalary.Dummy = as.factor(Salary.Dummy)
+)
+
+#cross validation
+set.seed(999)
+n <-nrow(ap_tibble)
+n
+floor(0.7*n)
+
+#randomly sample 70% of the rows
+
+train <- sample(1:n, 311)
+
+data_train <- glm(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight,family=binomial, subset = train, data=ap_tibble)
+
+summary(data_train)
+```
+
+```{r}
+library(mlbench)
+tn <- ap_tibble[train,]
+test <- ap_tibble[-train,]
+
+summary(glmFit <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
+
+```
+
+```{r}
+confusionMatrix(glmFit)
+```
+
+
+```{r}
+library(mlbench)
+# Transforming Team,Position,College into factors
+ap_tibble <- transform (
+  ap_tibble,
+  nTeam = as.numeric(fTeam),
+  nPosition = as.numeric(fPosition),
+  nCollege = as.numeric(fCollege),
+  fSalary.Dummy = as.factor(Salary.Dummy)
+)
+
+#cross validation
+set.seed(999)
+n <-nrow(ap_tibble)
+n
+floor(0.7*n)
+
+#randomly sample 70% of the rows
+
+train <- sample(1:n, 311)
+summary(glmFit <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
+confusionMatrix(glmFit)
+```
+
+```{r}
+summary(glmFit2 <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
+confusionMatrix(glmFit2)
+```
+
+```{r}
+#comparing the plots
+
+plot(lm1, which = 1)
+plot(lm1, which = 2)
+
+plot(lm4, which = 1)
+plot(lm4, which = 2)
+
+
+hist(resid(lm4))
+hist(resid(lm1))
+
+par(mfrow=c(1,3), mar=c(4.5, 4.5, 2, 2))
+
+plot(ap_tibble$fPosition, rstandard(lm1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$fPosition, rstandard(lm4), xlab ="fposition", ylab = "residuals")
+
+plot(ap_tibble$Age, rstandard(lm1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Age, rstandard(lm4), xlab ="fposition", ylab = "residuals")
+
+plot(ap_tibble$Weight, rstandard(lm1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Weight, rstandard(lm4), xlab ="fposition", ylab = "residuals")
+
+#normality check 
+par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
+plot(predict(lm1), ap_tibble$Salary,
+       xlab = "Fitted Values", ylab = "Salary")
+abline()
+lines(lowess(predict(lm1), ap_tibble$Salary), col='red')
+
+plot(predict(lm4), sqrt(ap_tibble$Salary),
+       xlab = "Fitted Values", ylab = "Salary")
+lines(lowess(predict(lm4), sqrt(ap_tibble$Salary)), col='red')
+
+plot(predict(lm1), ap_tibble$Weight,
+     xlab = "Fitted Values", ylab = "Weight")
+
+plot(predict(lm4), sqrt(ap_tibble$Weight),
+     xlab = "Fitted Values", ylab = "Weight")
+
+plot(predict(lm1), ap_tibble$Age,
+     xlab = "Fitted Values", ylab = "Age")
+
+plot(predict(lm4), sqrt(ap_tibble$Age),
+     xlab = "Fitted Values", ylab = "Age")
+
+#sqrt can not be used for factors
+#plot(predict(lm4), sqrt(ap_tibble$fPosition),
+    # xlab = "Fitted Values", ylab = "Age")
+
+
+library(corrplot)
+nba.matrix <- as.matrix(ap_tibble)
+corrplot(cor(nba.matrix), is.corr = FALSE, method = "circle", type = "upper")
+
+corrplot(cor(ap_tibble %>% 
+               select(fPosition, 
+                      Age, Weight, contains("%")), 
+             use = "complete.obs"), 
+         method = "circle",type = "upper")
+
+
+library(tidyverse)
+library(PerformanceAnalytics)
+library(plotly)
+library(GGally)
+stats_salary_cor <- 
+  ap_tibble %>% 
+  select(fPosition, Age, Weight, Age:Weight, fPosition:Age, fPosition:Weight)
+ggpairs(stats_salary_cor)
+
+```
+
+### Random Forest
+
+```{r}
+rf_model <- caret::train(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
+                         data = ap_tibble,
+                         method = "rf")
+
+rf_model
+```
+```{r}
+set.seed(999)
+rf3 <- randomForest(log(Salary) ~ fPosition+Age+Height_i+Weight,
+                         data = ap_tibble, n.var = 10, importance=TRUE)
+rf_preds_3 <- predict(rf3, type = "response")
+varImpPlot(rf3, type=1, main=" ")
+```
+
 ## Model Checking
 
 ### Outliers
@@ -340,199 +533,10 @@ Given that the estimated/predicted salaries are way way off, and that the adjust
 
 It was never expected that `Age`, `Weight`, and `fPosition` would be responsible for explaining the majority of variance.
 
-### Linear Regression pr - Need to Change Variable Names
-
-```{r}
-plot(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight, data=ap_tibble)
 
 
-pairs(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble)
-
-pairs(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight, data=ap_tibble)
-
-lmst <- step(lm1)
-summary(lmst)
-
-plot(lm1, which = 1)
-plot(lm1, which = 2)
-
-plot(lm4, which = 1)
-plot(lm4, which = 2)
 
 
-head(ap_tibble)
-
-#check 
-
-library(car)
-library(MASS)
-boxcox(lm1, lambda = seq(-2,2, by=0.05))
-summary(powerTransform(lm1))
-
-summary(lm1_log <- lm(log(Salary) ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble))
-
-AIC(lm1, lm4, lmst)
-```
-
-```{r}
-# Transforming Team,Position,College into factors
-ap_tibble <- transform (
-  ap_tibble,
-  nTeam = as.numeric(fTeam),
-  nPosition = as.numeric(fPosition),
-  nCollege = as.numeric(fCollege),
-  fSalary.Dummy = as.factor(Salary.Dummy)
-)
-
-#cross validation
-set.seed(999)
-n <-nrow(ap_tibble)
-n
-floor(0.7*n)
-
-#randomly sample 70% of the rows
-
-train <- sample(1:n, 311)
-
-data_train <- glm(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight,family=binomial, subset = train, data=ap_tibble)
-
-summary(data_train)
-```
-
-```{r}
-library(mlbench)
-tn <- ap_tibble[train,]
-test <- ap_tibble[-train,]
-
-summary(glmFit <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
-
-```
-
-```{r}
-confusionMatrix(glmFit)
-```
-
-
-```{r}
-library(mlbench)
-# Transforming Team,Position,College into factors
-ap_tibble <- transform (
-  ap_tibble,
-  nTeam = as.numeric(fTeam),
-  nPosition = as.numeric(fPosition),
-  nCollege = as.numeric(fCollege),
-  fSalary.Dummy = as.factor(Salary.Dummy)
-)
-
-#cross validation
-set.seed(999)
-n <-nrow(ap_tibble)
-n
-floor(0.7*n)
-
-#randomly sample 70% of the rows
-
-train <- sample(1:n, 311)
-summary(glmFit <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
-confusionMatrix(glmFit)
-```
-
-```{r}
-#comparing the plots
-
-plot(lm1, which = 1)
-plot(lm1, which = 2)
-
-plot(lm4, which = 1)
-plot(lm4, which = 2)
-
-
-hist(resid(lm4))
-hist(resid(lm1))
-
-par(mfrow=c(1,3), mar=c(4.5, 4.5, 2, 2))
-
-plot(ap_tibble$fPosition, rstandard(lm1), xlab ="fposition", ylab = "residuals")
-plot(ap_tibble$fPosition, rstandard(lm4), xlab ="fposition", ylab = "residuals")
-
-plot(ap_tibble$Age, rstandard(lm1), xlab ="fposition", ylab = "residuals")
-plot(ap_tibble$Age, rstandard(lm4), xlab ="fposition", ylab = "residuals")
-
-plot(ap_tibble$Weight, rstandard(lm1), xlab ="fposition", ylab = "residuals")
-plot(ap_tibble$Weight, rstandard(lm4), xlab ="fposition", ylab = "residuals")
-
-#normality check 
-par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
-plot(predict(lm1), ap_tibble$Salary,
-       xlab = "Fitted Values", ylab = "Salary")
-abline()
-lines(lowess(predict(lm1), ap_tibble$Salary), col='red')
-
-plot(predict(lm4), sqrt(ap_tibble$Salary),
-       xlab = "Fitted Values", ylab = "Salary")
-lines(lowess(predict(lm4), sqrt(ap_tibble$Salary)), col='red')
-
-plot(predict(lm1), ap_tibble$Weight,
-     xlab = "Fitted Values", ylab = "Weight")
-
-plot(predict(lm4), sqrt(ap_tibble$Weight),
-     xlab = "Fitted Values", ylab = "Weight")
-
-plot(predict(lm1), ap_tibble$Age,
-     xlab = "Fitted Values", ylab = "Age")
-
-plot(predict(lm4), sqrt(ap_tibble$Age),
-     xlab = "Fitted Values", ylab = "Age")
-
-#sqrt can not be used for factors
-#plot(predict(lm4), sqrt(ap_tibble$fPosition),
-    # xlab = "Fitted Values", ylab = "Age")
-
-
-library(corrplot)
-nba.matrix <- as.matrix(ap_tibble)
-corrplot(cor(nba.matrix), is.corr = FALSE, method = "circle", type = "upper")
-
-corrplot(cor(ap_tibble %>% 
-               select(fPosition, 
-                      Age, Weight, contains("%")), 
-             use = "complete.obs"), 
-         method = "circle",type = "upper")
-
-
-library(tidyverse)
-library(PerformanceAnalytics)
-library(plotly)
-library(GGally)
-stats_salary_cor <- 
-  ap_tibble %>% 
-  select(fPosition, Age, Weight, Age:Weight, fPosition:Age, fPosition:Weight)
-ggpairs(stats_salary_cor)
-
-```
-
-# Random Forest
-
-```{r}
-rf_model <- caret::train(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
-                         data = ap_tibble,
-                         method = "rf")
-
-rf_model
-```
-```{r}
-set.seed(999)
-rf3 <- randomForest(log(Salary) ~ fPosition+Age+Height_i+Weight,
-                         data = ap_tibble, n.var = 10, importance=TRUE)
-rf_preds_3 <- predict(rf3, type = "response")
-varImpPlot(rf3, type=1, main=" ")
-```
-
-
-```{r}
-summary(glmFit2 <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
-confusionMatrix(glmFit2)
-```
 
 
 
