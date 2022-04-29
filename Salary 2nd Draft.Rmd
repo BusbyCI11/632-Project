@@ -23,6 +23,7 @@ library(rstatix)
 library(forcats)
 library(GGally)
 library(performance)
+library(caret)
 ```
 
 # Intro
@@ -99,12 +100,35 @@ str(ap_cl_f)
 ggpairs(ap_cl_f, columns = c(9,4,6,7), cardinality_threshold = NULL)
 ```
 
+```{r}
+ggplot(ap_cl_f, aes(Salary)) +
+  geom_histogram(bins = 30)
+```
+
+```{r}
+ggplot(ap_cl_f, aes(log(Salary))) +
+  geom_histogram(bins = 30)
+```
+
 ### Full(Initial) Model
 
 ```{r}
 lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f)
 summary(lm1)
 ```
+
+
+
+#### Inital Tests
+
+
+
+```{r}
+shapiro.test(resid(lm1))
+bptest(lm1)
+```
+
+### Reduced Model
 
 ```{r}
 summary(lm2 <- lm(Salary ~ fPosition+fCollege+Age+Height_i+Weight, data=ap_cl_f))
@@ -156,20 +180,22 @@ summary(lm_step_wo <- step(lm1_wo <- lm(Salary ~ fTeam+fPosition+fCollege+Age+He
 
 ### Box Cox
 
-Despite an estimated power of $-0.33$, the Box-Cox Transformation doesn't appear to contribute aything to the model, as it results in the same reduced model with a reduced adjusted $R^2$.
-
 ```{r}
 boxcox(lm1,lambda=seq(-1, 1, by=0.05))
 ```
 
 ```{r}
-summary(lm1_p1 <- powerTransform(lm1))
+BoxCoxTrans(ap_cl_f$Salary)
 ```
 
 ```{r}
-Y1 <- coef(lm1_p1, round=TRUE)
-summary(lm_step_trans <- step(lm1_trans <- lm(bcPower(Salary, Y1)~fTeam + fPosition + fCollege + Age + Height_i + Weight, data = ap_cl_f)))
+summary(lm_step_trans <- step(lm1_trans <- lm(log(Salary)~fTeam + fPosition + fCollege + Age + Height_i + Weight, data = ap_cl_f)))
 ```
+
+```{r}
+lm_step_trans
+```
+
 
 ```{r}
 performance::check_model(lm_step_trans)
@@ -178,13 +204,25 @@ performance::check_model(lm_step_trans)
 ### Comparing Models
 
 ```{r}
+anova(lm1,lm2,lm3,lm_step)
+```
+
+```{r}
 performance::compare_performance(lm1,lm2,lm3,lm_step, rank = TRUE)
+```
+
+```{r}
+anova(lm_step_trans,lm1_trans)
 ```
 
 ```{r}
 compare_performance(lm_step_trans,lm1_trans, rank = TRUE)
 ```
 
+#### VIF
+
 ```{r}
-plot(binned_residuals(lm_step))
+round(vif(lm_step),2)
+round(vif(lm_step_trans),2)
 ```
+
