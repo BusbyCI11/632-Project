@@ -376,11 +376,11 @@ plot(predict(lm4), sqrt(ap_tibble$Age),
 ### Random Forest
 
 ```{r}
-rf_model <- caret::train(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
-                         data = ap_tibble,
-                         method = "rf")
-
-rf_model
+# rf_model <- caret::train(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
+#                          data = ap_tibble,
+#                          method = "rf")
+# 
+# rf_model
 ```
 
 ```{r}
@@ -509,9 +509,9 @@ $log(\widehat{Salary})=13.330870-0.489098(fPositionF)+0.73758(fPositionG)\\+0.17
 ### Prediction
 
 ```{r}
-# Steph Curry, Age = 34, Weigth = 185, fPosition = PG, Salary = 45780966
+# Steph Curry, Age = 34, Weight = 185, fPosition = PG, Salary = 45780966
 newdata <- data.frame(fPosition='PG', Age=34, Weight = 185)
-exp(predict(lm3, newdata, type='response'))
+exp(predict(lm_step_trans, newdata, type='response'))
 ```
 
 ```{r}
@@ -530,3 +530,120 @@ exp(predict(lm_step_trans, newdata, type='response'))
 Given that the estimated/predicted salaries are way way off, and that the adjusted $R^2$ of the `lm_step_trans` is only $0.171$, there are obviously other predictors responsible for the majority of variance in the salaries of NBA players, most likely factors such as points scored, assists, rebounds, etc.
 
 It was never expected that `Age`, `Weight`, and `fPosition` would be responsible for explaining the majority of variance.
+
+
+# Scratch
+```{r}
+set.seed(999)
+n <-nrow(ap_tibble)
+n
+floor(0.7*n)
+
+#randomly sample 70% of the rows
+
+train <- sample(1:n, 311)
+
+glm_train <- glm(fSalary.Dummy ~ poly(Age,3), data=ap_tibble, subset = train, family =  binomial)
+
+summary(glm_train)
+
+ap_test <- ap_tibble[-train,]
+head(ap_test)
+
+probs_test <- predict(glm_train, newdata = ap_test,
+                     type = "response")
+
+head(probs_test)
+
+
+length(probs_test)
+preds_test <- rep(0,12)
+preds_test[probs_test > 0.5] <- 1
+
+length(probs_test)
+length(preds_test)
+
+head(probs_test)
+head(preds_test)
+
+tb1<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
+addmargins(tb1)
+
+#Accuracy
+(tb[1,1] + tb[2,2]) / 1206
+#Sensitivity
+tb[2,2] / 786
+#Specificity
+tb[1,1] / 148
+
+
+library(pROC)
+roc_reduced <- roc(ap_test$fSalary.Dummy, probs_test)
+plot(1 - roc_obj$specificities, roc_obj$sensitivities, type="l",
+       xlab = "1 - Specificity", ylab = "Sensitivity")
+# plot red point corresponding to 0.5 threshold:
+points(x = 24/149, y = 763/785, col="red", pch=19)
+abline(0, 1, lty=2)
+```
+
+```{r}
+set.seed(999)
+n <-nrow(ap_tibble)
+n
+floor(0.7*n)
+
+#randomly sample 70% of the rows
+
+train <- sample(1:n, 311)
+
+glm_train <- glm(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble, subset = train, family =  binomial)
+
+summary(glm_train)
+
+ap_test <- ap_tibble[-train,]
+head(ap_test)
+
+probs_test <- predict(glm_train, newdata = ap_test,
+                     type = "response")
+
+head(probs_test)
+
+
+length(probs_test)
+preds_test <- rep(0,12)
+preds_test[probs_test > 0.5] <- 1
+
+length(probs_test)
+length(preds_test)
+
+head(probs_test)
+head(preds_test)
+
+tb1<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
+addmargins(tb1)
+
+#Accuracy
+(tb[1,1] + tb[2,2]) / 1206
+#Sensitivity
+tb[2,2] / 786
+#Specificity
+tb[1,1] / 148
+
+
+library(pROC)
+roc_full <- roc(ap_test$fSalary.Dummy, probs_test)
+plot(1 - roc_obj$specificities, roc_obj$sensitivities, type="l",
+       xlab = "1 - Specificity", ylab = "Sensitivity")
+# plot red point corresponding to 0.5 threshold:
+points(x = 24/149, y = 763/785, col="red", pch=19)
+abline(0, 1, lty=2)
+```
+
+```{r}
+auc(roc_full)
+```
+
+```{r}
+auc(roc_reduced)
+```
+
