@@ -519,16 +519,16 @@ tb1<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
 addmargins(tb1)
 
 #Accuracy
-(tb[1,1] + tb[2,2]) / 1206
+(tb1[1,1] + tb[2,2]) / 1206
 #Sensitivity
-tb[2,2] / 786
+tb1 / 786
 #Specificity
-tb[1,1] / 148
+tb1[1,1] / 148
 
 
 library(pROC)
 roc_reduced <- roc(ap_test$fSalary.Dummy, probs_test)
-plot(1 - roc_obj$specificities, roc_obj$sensitivities, type="l",
+plot(1 - roc_reduced$specificities, roc_reduced$sensitivities, type="l",
        xlab = "1 - Specificity", ylab = "Sensitivity")
 # plot red point corresponding to 0.5 threshold:
 points(x = 24/149, y = 763/785, col="red", pch=19)
@@ -568,20 +568,20 @@ length(preds_test)
 head(probs_test)
 head(preds_test)
 
-tb1<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
-addmargins(tb1)
+tb2<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
+addmargins(tb2)
 
 #Accuracy
-(tb[1,1] + tb[2,2]) / 1206
+(tb2[1,1] + tb2[2,2]) / 1206
 #Sensitivity
-tb[2,2] / 786
+tb2[2,2] / 786
 #Specificity
-tb[1,1] / 148
+tb2[1,1] / 148
 
 
 library(pROC)
 roc_full <- roc(ap_test$fSalary.Dummy, probs_test)
-plot(1 - roc_obj$specificities, roc_obj$sensitivities, type="l",
+plot(1 - roc_full$specificities, roc_full$sensitivities, type="l",
        xlab = "1 - Specificity", ylab = "Sensitivity")
 # plot red point corresponding to 0.5 threshold:
 points(x = 24/149, y = 763/785, col="red", pch=19)
