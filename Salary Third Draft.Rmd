@@ -105,22 +105,13 @@ ap_cl_f <- transform (
 str(ap_cl_f)
 ```
 
-## Recoding for Logistic Regression
+
 
 ```{r}
 # Start with `ap_cl_f` data.frame, reclassify as tibble
 
 ap_tibble <- as_tibble(ap_cl_f)
 class(ap_tibble)
-```
-
-```{r}
-# Calculate quantiles of Salary for good cutoff point
-quantile(ap_tibble$Salary, probs = seq(0,1,1/20))
-```
-
-```{r}
-ap_tibble <- ap_tibble %>% mutate(Salary.Dummy = if_else(Salary >= 8222063, 1, 0))
 ```
 
 ```{r}
@@ -278,6 +269,19 @@ bptest(lm_step)
 ```
 
 ### Logistic Regression
+
+#### Recoding for Logistic Regression
+
+```{r}
+# Calculate quantiles of Salary for good cutoff point
+quantile(ap_tibble$Salary, probs = seq(0,1,1/20))
+```
+
+```{r}
+# Used 65% as cutoff
+
+ap_tibble <- ap_tibble %>% mutate(Salary.Dummy = if_else(Salary >= 8401762, 1, 0))
+```
 
 ```{r}
 # Transforming Team,Position,College into factors
