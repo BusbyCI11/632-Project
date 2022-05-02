@@ -86,5 +86,85 @@ model1
 ```
 
 
-## Removal
+## Removal?
 
+```{r}
+# Removal of `fTeam` due to no significance
+summary(lm2 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Height_i+Weight,
+                  data=ap_tibble))
+```
+
+```{r}
+# Removal of `Height_i` due to no significance
+summary(lm3 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Weight,
+                  data=ap_tibble))
+```
+
+```{r}
+# Removal of `fCollege`
+summary(lm4 <- lm(Salary ~ fPosition+poly(Age,3)+Weight,
+                  data=ap_tibble))
+```
+
+```{r}
+lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
+          data=ap_tibble)
+```
+
+```{r}
+anova(lm4,lm3,lm2,lm1)
+```
+
+
+## RF
+
+```{r}
+# rf_model <- caret::train(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
+#                          data = ap_tibble,
+#                          method = "rf")
+# 
+# rf_model
+```
+
+### Random Forest
+
+```{r}
+set.seed(999)
+rf3 <- randomForest(log(Salary) ~ fPosition+poly(Age,3)+Height_i+Weight,data = ap_tibble, n.var = 10, importance=TRUE)
+rf_preds_3 <- predict(rf3, type = "response")
+varImpPlot(rf3, type=1, main=" ")
+```
+
+## Logistic/Linear?
+
+```{r}
+#plot(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight,data=ap_tibble)
+
+
+#pairs(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight,data=ap_tibble)
+
+#pairs(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight,data=ap_tibble)
+
+# lmst <- step(lm1)
+# summary(lmst)
+# 
+# plot(lm1, which = 1)
+# plot(lm1, which = 2)
+# 
+# plot(lm4, which = 1)
+# plot(lm4, which = 2)
+
+
+head(ap_tibble)
+
+#check 
+
+
+boxcox(lm1, lambda = seq(-2,2, by=0.05))
+summary(powerTransform(lm1))
+
+summary(lm1_log <- lm(log(Salary) ~ fTeam+fPosition+fCollege+Age+Height_i+Weight,
+                      data=ap_tibble))
+
+AIC(lm1, lm4, lmst)
+```

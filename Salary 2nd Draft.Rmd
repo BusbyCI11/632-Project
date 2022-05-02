@@ -33,6 +33,7 @@ library(lmtest)
 library(corrplot)
 library(PerformanceAnalytics)
 library(plotly)
+library(mlbench)
 ```
 
 # Intro
@@ -144,15 +145,23 @@ ggplot(ap_tibble, aes(log(Salary))) +
 ### Full(Initial) Model
 
 ```{r}
-lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble)
-summary(lm1)
+summary(lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble))
 ```
-
-### Initial Tests
 
 ```{r}
 shapiro.test(resid(lm1))
 bptest(lm1)
+```
+
+### log(Full Model)
+
+```{r}
+summary(lm_l1 <- lm(log(Salary) ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble))
+```
+
+```{r}
+shapiro.test(resid(lm1_log))
+bptest(lm1_log)
 ```
 
 ### Check for Polynomial Terms
@@ -160,24 +169,17 @@ bptest(lm1)
 `Age`, `Height_i`, and `Weight` appear to be misspecified.
 
 ```{r}
-crPlots(lm1)
+crPlots(lm1_log)
 ```
 
 ```{r}
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,2)+poly(Height_i,2)+poly(Weight,2),
-           data=ap_tibble))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+poly(Height_i,3)+poly(Weight,3),
-           data=ap_tibble))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,4)+poly(Height_i,4)+poly(Weight,4),
-           data=ap_tibble))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,2),
-           data=ap_tibble))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,3),
-           data=ap_tibble))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,4),
-           data=ap_tibble))
-summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
-           data=ap_tibble))
+#summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,2)+poly(Height_i,2)+poly(Weight,2),data=ap_tibble))
+#summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+poly(Height_i,3)+poly(Weight,3),data=ap_tibble))
+#summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,4)+poly(Height_i,4)+poly(Weight,4),data=ap_tibble))
+#summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,2),data=ap_tibble))
+#summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,3),data=ap_tibble))
+#summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,4),data=ap_tibble))
+summary(lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,data=ap_tibble))
 ```
 
 The end result is that only `Age` has been misspecified, and has been re-specified as `poly(Age,3)`.
@@ -185,74 +187,44 @@ The end result is that only `Age` has been misspecified, and has been re-specifi
 ### Reduced Model
 
 ```{r}
+summary(lm_log1 <- lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble))
+```
+
+
+```{r}
 # Removal of `fTeam` due to no significance
-summary(lm2 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Height_i+Weight,
-                  data=ap_tibble))
+summary(lm_log2 <- lm(log(Salary) ~ fPosition+fCollege+poly(Age,3)+Height_i+Weight,data=ap_tibble))
 ```
 
 ```{r}
-# Removal of `Height_i` due to no significance
-summary(lm3 <- lm(Salary ~ fPosition+fCollege+poly(Age,3)+Weight,
-                  data=ap_tibble))
+summary(lm_log3 <- lm(log(Salary) ~ fPosition+poly(Age,3)+Height_i+Weight,data=ap_tibble))
 ```
 
 ```{r}
-# Removal of `fCollege`
-summary(lm4 <- lm(Salary ~ fPosition+poly(Age,3)+Weight,
-                  data=ap_tibble))
+summary(lm_log4 <- lm(log(Salary) ~ fPosition+poly(Age,3)+Weight,data=ap_tibble))
 ```
 
 ```{r}
-lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
-          data=ap_tibble)
-anova(lm4,lm3,lm2,lm1)
+anova(lm_log4,lm_log3,lm_log2,lm_log1)
 ```
 
 ### Stepwise Model Selection
 
 ```{r}
-lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
-          data=ap_tibble)
-summary(lm_step <- step(lm1))
+summary(lm_step <- step(lm_logsm <- lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,data=ap_tibble)))
 ```
-
-### Linear Regression
 
 ```{r}
-plot(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight,
-     data=ap_tibble)
-
-
-pairs(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight,
-      data=ap_tibble)
-
-pairs(Salary ~ fPosition+Age+Weight+fPosition:Age+fPosition:Weight+Age:Weight,
-      data=ap_tibble)
-
-lmst <- step(lm1)
-summary(lmst)
-
-plot(lm1, which = 1)
-plot(lm1, which = 2)
-
-plot(lm4, which = 1)
-plot(lm4, which = 2)
-
-
-head(ap_tibble)
-
-#check 
-
-library(car)
-library(MASS)
-boxcox(lm1, lambda = seq(-2,2, by=0.05))
-summary(powerTransform(lm1))
-
-summary(lm1_log <- lm(log(Salary) ~ fTeam+fPosition+fCollege+Age+Height_i+Weight,
-                      data=ap_tibble))
-
-AIC(lm1, lm4, lmst)
+shapiro.test(resid(lm_log2))
+bptest(lm_log2)
 ```
+
+```{r}
+shapiro.test(resid(lm_step))
+bptest(lm_step)
+```
+
+### Logistic Regression
 
 ```{r}
 # Transforming Team,Position,College into factors
@@ -274,122 +246,67 @@ floor(0.7*n)
 
 train <- sample(1:n, 311)
 
-data_train <- glm(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight,
-                  family=binomial, subset = train, data=ap_tibble)
-
-summary(data_train)
-```
-
-```{r}
-library(mlbench)
 tn <- ap_tibble[train,]
 test <- ap_tibble[-train,]
-
-summary(glmFit <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age
-                        +Height_i+Weight,data=ap_tibble, method="glmStepAIC"))
-
 ```
 
 ```{r}
+summary(glmFit <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age+Height_i+Weight, data=ap_tibble, method="glmStepAIC", trace = 0))
 confusionMatrix(glmFit)
 ```
 
 ```{r}
-library(mlbench)
-# Transforming Team,Position,College into factors
-ap_tibble <- transform (
-  ap_tibble,
-  nTeam = as.numeric(fTeam),
-  nPosition = as.numeric(fPosition),
-  nCollege = as.numeric(fCollege),
-  fSalary.Dummy = as.factor(Salary.Dummy)
-)
-
-#cross validation
-set.seed(999)
-n <-nrow(ap_tibble)
-n
-floor(0.7*n)
-
-#randomly sample 70% of the rows
-
-train <- sample(1:n, 311)
-summary(glmFit <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+Age
-                        +Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
-confusionMatrix(glmFit)
-```
-
-```{r}
-summary(glmFit2 <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)
-                         +Height_i+Weight, data=ap_tibble, method="glmStepAIC"))
+summary(glmFit2 <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble, method="glmStepAIC", trace = 0))
 confusionMatrix(glmFit2)
 ```
 
 ```{r}
 #comparing the plots
+# Rename variables
 
-plot(lm1, which = 1)
-plot(lm1, which = 2)
+plot(lm_log1, 1:2)
 
-plot(lm4, which = 1)
-plot(lm4, which = 2)
+plot(lm_log4, 1:2)
 
+hist(resid(lm_log1))
+hist(resid(lm_log4))
 
-hist(resid(lm4))
-hist(resid(lm1))
 
 par(mfrow=c(1,3), mar=c(4.5, 4.5, 2, 2))
 
-plot(ap_tibble$fPosition, rstandard(lm1), xlab ="fposition", ylab = "residuals")
-plot(ap_tibble$fPosition, rstandard(lm4), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$fPosition, rstandard(lm_log1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$fPosition, rstandard(lm_log4), xlab ="fposition", ylab = "residuals")
 
-plot(ap_tibble$Age, rstandard(lm1), xlab ="fposition", ylab = "residuals")
-plot(ap_tibble$Age, rstandard(lm4), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Age, rstandard(lm_log1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Age, rstandard(lm_log4), xlab ="fposition", ylab = "residuals")
 
-plot(ap_tibble$Weight, rstandard(lm1), xlab ="fposition", ylab = "residuals")
-plot(ap_tibble$Weight, rstandard(lm4), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Weight, rstandard(lm_log1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Weight, rstandard(lm_log4), xlab ="fposition", ylab = "residuals")
 
 #normality check 
 par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
-plot(predict(lm1), ap_tibble$Salary,
+plot(predict(lm_log1), ap_tibble$Salary,
        xlab = "Fitted Values", ylab = "Salary")
 abline()
-lines(lowess(predict(lm1), ap_tibble$Salary), col='red')
+lines(lowess(predict(lm_log1), ap_tibble$Salary), col='red')
 
-plot(predict(lm4), sqrt(ap_tibble$Salary),
+plot(predict(lm_log4), sqrt(ap_tibble$Salary),
        xlab = "Fitted Values", ylab = "Salary")
-lines(lowess(predict(lm4), sqrt(ap_tibble$Salary)), col='red')
+lines(lowess(predict(lm_log4), sqrt(ap_tibble$Salary)), col='red')
 
-plot(predict(lm1), ap_tibble$Weight,
+plot(predict(lm_log1), ap_tibble$Weight,
      xlab = "Fitted Values", ylab = "Weight")
 
-plot(predict(lm4), sqrt(ap_tibble$Weight),
+plot(predict(lm_log4), sqrt(ap_tibble$Weight),
      xlab = "Fitted Values", ylab = "Weight")
 
-plot(predict(lm1), ap_tibble$Age,
+plot(predict(lm_log1), ap_tibble$Age,
      xlab = "Fitted Values", ylab = "Age")
 
-plot(predict(lm4), sqrt(ap_tibble$Age),
+plot(predict(lm_log4), sqrt(ap_tibble$Age),
      xlab = "Fitted Values", ylab = "Age")
 ```
 
-### Random Forest
-
-```{r}
-# rf_model <- caret::train(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
-#                          data = ap_tibble,
-#                          method = "rf")
-# 
-# rf_model
-```
-
-```{r}
-set.seed(999)
-rf3 <- randomForest(log(Salary) ~ fPosition+Age+Height_i+Weight,
-                         data = ap_tibble, n.var = 10, importance=TRUE)
-rf_preds_3 <- predict(rf3, type = "response")
-varImpPlot(rf3, type=1, main=" ")
-```
 
 ## Model Checking
 
@@ -402,9 +319,9 @@ ap_cl_f_wo <- ap_tibble[-which(abs(rstandard(lm_step)) > 2
 ```
 
 ```{r}
-summary(lm1_wo <- lm(Salary ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
+summary(lm1_wo <- lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,
                      data=ap_cl_f_wo))
-summary(lm_step_wo <- step(lm1_wo))
+summary(lm1_wo_step <- step(lm1_wo))
 ```
 
 ### Box Cox
@@ -419,11 +336,7 @@ BoxCoxTrans(ap_tibble$Salary)
 
 ```{r}
 # Performing
-summary(lm_step_trans <- step(lm1_trans <- lm(log(Salary)~fTeam + fPosition + fCollege + poly(Age,3) + Height_i + Weight, data = ap_tibble)))
-```
-
-```{r}
-lm_step_trans
+summary(lm_trans_step <- step(lm1_trans <- lm(log(Salary)~fTeam + fPosition + fCollege + poly(Age,3) + Height_i + Weight, data = ap_tibble)))
 ```
 
 ### Box-Cox w/o outliers and high leverage
@@ -431,7 +344,7 @@ lm_step_trans
 Very poor results compared to keeping the high leverage points and the outliers.
 
 ```{r}
-boxcox(lm1_wo,lambda=seq(-1, 1, by=0.05))
+boxcox(lm1_wo,lambda=seq(-7, 7, by=0.05))
 ```
 
 ```{r}
@@ -439,17 +352,13 @@ BoxCoxTrans(ap_cl_f_wo$Salary)
 ```
 
 ```{r}
-summary(lm_step_trans_wo <- step(lm1_trans_wo <- lm(log(Salary)~fTeam + fPosition + fCollege + poly(Age,3) + Height_i + Weight, data = ap_cl_f_wo)))
+summary(lm_wo_step_trans <- step(lm1_wo_trans <- lm(log(Salary)~fTeam + fPosition + fCollege + poly(Age,3) + Height_i + Weight, data = ap_cl_f_wo)))
 ```
 
 ## Comparing Models
 
 ```{r}
-anova(lm_step,lm3,lm2,lm1)
-```
-
-```{r}
-performance::compare_performance(lm1,lm2,lm3,lm_step, rank = TRUE)
+performance::compare_performance(lm_log1,lm_log2,lm_log3,lm_step, rank = TRUE)
 ```
 
 ```{r}
@@ -457,21 +366,15 @@ anova(lm_step_trans,lm1_trans)
 ```
 
 ```{r}
-compare_performance(lm_step_trans,lm1_trans, rank = TRUE)
+compare_performance(lm1_wo,lm_wo_step_trans, rank = TRUE)
 ```
 
-```{r}
-performance::check_model(lm_step)
-```
 
-```{r}
-performance::check_model(lm_step_trans)
-```
 
 ```{r}
 par(mfrow=c(2,2))
 plot(lm_step,1:2)
-plot(lm_step_trans,1:2)
+plot(lm1_wo_trans,1:2)
 ```
 
 ## VIF
@@ -519,7 +422,7 @@ tb1<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
 addmargins(tb1)
 
 #Accuracy
-(tb1[1,1] + tb[2,2]) / 1206
+(tb1[1,1] + tb1[2,2]) / 1206
 #Sensitivity
 tb1 / 786
 #Specificity
@@ -607,6 +510,15 @@ bptest(lm_step_trans)
 ## Plots
 
 ```{r}
+plot(lm_log2, 1:2)
+```
+
+```{r}
+check_model(lm_log4)
+```
+
+
+```{r}
 plot(hatvalues(lm_step), rstandard(lm_step_trans),xlab='Leverage', ylab='Standardized Residuals')
 ```
 
@@ -615,11 +527,14 @@ par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
 plot(lm_step, 1:2)
 ```
 
+
+
+
 ```{r}
 performance::check_model(lm_step)
 ```
 
-## Final Model
+## Final Model - Change
 
 $log(\widehat{Salary})=13.330870-0.489098(fPositionF)+0.73758(fPositionG)\\+0.174562(fPositionPF)+0.711135(fPositionPG)\\+0.316997(fPositionSF)+0.403881(fPositionSG)\\+6.769471(Age)-3.110142(Age)^2-3.153257(Age)^3+0.008296(Weight)$
 
@@ -646,7 +561,4 @@ exp(predict(lm_step_trans, newdata, type='response'))
 
 Given that the estimated/predicted salaries are way way off, and that the adjusted $R^2$ of the `lm_step_trans` is only $0.171$, there are obviously other predictors responsible for the majority of variance in the salaries of NBA players, most likely factors such as points scored, assists, rebounds, etc.
 
-It was never expected that `Age`, `Weight`, and `fPosition` would be responsible for explaining the majority of variance.
-
-
-
+It was never expected that non-skill factors would be responsible for explaining the majority of Salary variance.
