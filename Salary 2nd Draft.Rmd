@@ -160,8 +160,8 @@ summary(lm_l1 <- lm(log(Salary) ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, 
 ```
 
 ```{r}
-shapiro.test(resid(lm1_log))
-bptest(lm1_log)
+shapiro.test(resid(lm_l1))
+bptest(lm_l1)
 ```
 
 ### Check for Polynomial Terms
