@@ -275,15 +275,10 @@ bptest(lm_step)
 ```{r}
 # Calculate quantiles of Salary for good cutoff point
 quantile(ap_tibble$Salary, probs = seq(0,1,1/20))
-```
 
-```{r}
 # Used 65% as cutoff
-
 ap_tibble <- ap_tibble %>% mutate(Salary.Dummy = if_else(Salary >= 8401762, 1, 0))
-```
 
-```{r}
 # Transforming Team,Position,College into factors
 ap_tibble <- transform (
   ap_tibble,
@@ -292,7 +287,11 @@ ap_tibble <- transform (
   nCollege = as.numeric(fCollege),
   fSalary.Dummy = as.factor(Salary.Dummy)
 )
+```
 
+#### Model Selection (glm)
+
+```{r}
 #cross validation
 set.seed(999)
 n <-nrow(ap_tibble)
