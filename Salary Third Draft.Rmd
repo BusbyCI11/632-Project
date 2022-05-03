@@ -233,6 +233,11 @@ ap_tibble <- ap_tibble[-which(abs(rstandard(lm_log1)) > 2 | hatvalues(lm_log1) >
 summary(lm_log1 <- lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble))
 ```
 
+```{r}
+shapiro.test(resid(lm_log1))
+bptest(lm_log1)
+```
+
 ### Reduced Model
 
 ```{r}
