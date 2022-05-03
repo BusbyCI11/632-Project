@@ -6,10 +6,8 @@ output:
   pdf_document: 
     toc: yes
     toc_depth: 5
-  html_document:
-    df_print: paged
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -220,7 +218,7 @@ abline(h=cutoff, lty=2, col="red")
 ```
 
 ```{r}
-influencePlot(lm_log1,id=list(method="identify"),main="Influence Plot", sub="Circle size is proportional to Cook's distance")
+influencePlot(lm_log1,main="Influence Plot", sub="Circle size is proportional to Cook's distance")
 ```
 
 ```{r}
@@ -419,11 +417,11 @@ tb1<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
 addmargins(tb1)
 
 #Accuracy
-(tb1[1,1] + tb1[2,2]) / 1206
+(tb1[1,1] + tb1[2,2]) / 36
 #Sensitivity
-tb1 / 786
+tb1[2,2] / 19
 #Specificity
-tb1[1,1] / 148
+tb1[1,1] / 17
 
 
 library(pROC)
@@ -431,7 +429,7 @@ roc_full <- roc(ap_test$fSalary.Dummy, probs_test)
 plot(1 - roc_full$specificities, roc_full$sensitivities, type="l",
        xlab = "1 - Specificity", ylab = "Sensitivity")
 # plot red point corresponding to 0.5 threshold:
-points(x = 24/149, y = 763/785, col="red", pch=19)
+points(x = 1-(tb2[1,1] / 17), y = tb2[2,2] / 19, col="red", pch=19)
 abline(0, 1, lty=2)
 ```
 
@@ -465,11 +463,11 @@ tb2<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
 addmargins(tb2)
 
 #Accuracy
-(tb2[1,1] + tb2[2,2]) / 1206
+(tb2[1,1] + tb2[2,2]) / 36
 #Sensitivity
-tb2[2,2] / 786
+tb2[2,2] / 19
 #Specificity
-tb2[1,1] / 148
+tb2[1,1] / 17
 
 
 library(pROC)
@@ -477,7 +475,7 @@ roc_reduced <- roc(ap_test$fSalary.Dummy, probs_test)
 plot(1 - roc_reduced$specificities, roc_reduced$sensitivities, type="l",
        xlab = "1 - Specificity", ylab = "Sensitivity")
 # plot red point corresponding to 0.5 threshold:
-points(x = 24/149, y = 763/785, col="red", pch=19)
+points(x = 1-(tb2[1,1] / 17), y = tb2[2,2] / 19, col="red", pch=19)
 abline(0, 1, lty=2)
 ```
 
@@ -493,8 +491,9 @@ auc(roc_reduced)
 ## Plots
 
 ```{r}
-par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
+par(mfrow=c(2,2), mar=c(4.5, 4.5, 2, 2))
 plot(lm_log3, 1:2)
+plot(lm_step, 1:2)
 ```
 
 ```{r}
@@ -505,10 +504,7 @@ performance::check_model(lm_log3)
 plot(hatvalues(lm_log3), rstandard(lm_log3),xlab='Leverage', ylab='Standardized Residuals')
 ```
 
-```{r}
-par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
-plot(lm_step, 1:2)
-```
+
 
 ```{r}
 performance::check_model(lm_step)
@@ -516,21 +512,41 @@ performance::check_model(lm_step)
 
 ## Final Model - Change
 
+Backwards Elimination Reduced Model:
 
+$$log(\widehat{Salary}) = 11.50148+fPosition\pm fCollege+6.07923Age-3.89527Age^2-3.16991Age^3+0.01535Weight$$
 
-### Prediction - Needs to be updated for newest model
+Step() Reduced Model:
+
+$$log(\widehat{Salary}) = 12.40672 \pm fPosition + 6.68504Age-3.14049Age^2-3.28484Age^3+0.01176Weight$$
+
+Loigistic Regression Model:
+
+$$fSalary.Dummy = 1.07995+0.20322nPosition+14.73302Age-12.62790Age^2-7.79748Age^3-0.98882Height_i+0.01659Weight$$
+
+### Prediction
 
 ```{r}
 # James Harden SG 32 6.5 220 "Arizona State" 44310840
 
 newdata <- data.frame(fPosition='SG', Age=32, Weight = 220, fCollege='Arizona State')
-exp(predict(lm_log3, newdata, type='response'))
+cat("lm_log3 prediction = $", exp(predict(lm_log3, newdata, type='response')), "\n")
+
+newdata <- data.frame(fPosition='SG', Age=32, Weight = 220, fCollege='Arizona State')
+cat("lm_step prediction = $", exp(predict(lm_step, newdata, type='response')), "\n")
+
+cat("Actual Salary = $ 44310840")
 ```
 
 ```{r}
 # Miles McBride Age = 20, Weight = 200, fPosition = PG fCollege = West Virginia, Salary = 925258
 newdata <- data.frame(fPosition='PG', Age=20, Weight = 200, fCollege = 'West Virginia')
-exp(predict(lm_trans_step, newdata, type='response'))
+cat("lm_log3 prediction = $", exp(predict(lm_log3, newdata, type='response')), "\n")
+
+newdata <- data.frame(fPosition='PG', Age=20, Weight = 200, fCollege = 'West Virginia')
+cat("lm_step prediction = $",exp(predict(lm_step, newdata, type='response')), "\n")
+
+cat("Actual Salary = $ 925258")
 ```
 
 ## Conclusion
@@ -542,4 +558,9 @@ It was never expected that non-skill factors would be responsible for explaining
 https://www.r-bloggers.com/2021/07/easystats-quickly-investigate-model-performance/
 https://stackoverflow.com/questions/44578920/r-how-to-reload-function-or-change-package-priority
 https://towardsdatascience.com/how-to-detect-unusual-observations-on-your-regression-model-with-r-de0eaa38bc5b#:~:text=You%20can%20compute%20the%20high,considers%20as%20high%2Dleverage%20points.
+
+
+```{r}
+str(ap_tibble)
+```
 
