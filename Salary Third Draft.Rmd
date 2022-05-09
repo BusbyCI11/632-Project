@@ -429,7 +429,7 @@ roc_full <- roc(ap_test$fSalary.Dummy, probs_test)
 plot(1 - roc_full$specificities, roc_full$sensitivities, type="l",
        xlab = "1 - Specificity", ylab = "Sensitivity")
 # plot red point corresponding to 0.5 threshold:
-points(x = 1-(tb2[1,1] / 17), y = tb2[2,2] / 19, col="red", pch=19)
+points(x = 1-(tb1[1,1] / 17), y = tb1[2,2] / 19, col="red", pch=19)
 abline(0, 1, lty=2)
 ```
 
@@ -562,5 +562,10 @@ https://towardsdatascience.com/how-to-detect-unusual-observations-on-your-regres
 
 ```{r}
 str(ap_tibble)
+```
+
+
+```{r}
+#influencePlot(lm_log3,main="Influence Plot", sub="Circle size is proportional to Cook's distance")
 ```
 
