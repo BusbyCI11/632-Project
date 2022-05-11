@@ -34,15 +34,6 @@ pacman::p_load(tidymodels,randomForest,parallel,rpart,readr,janitor,car,MASS,Hmi
 step <- stats::step
 ```
 
-# Intro
-
-blahblahblah Hi
-
-Question - How do the various stats from the ESPN website explain the salaries of NBA players?
-
-Where data is from
-
-Variables explained
 
 ## Data Exploration
 
