@@ -1,0 +1,568 @@
+---
+title: "NBA Salaries Final Code"
+author: "Colin Busby & Hem Charan Bagul Krishnamurthy"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+title: "Salary MLR 2nd Draft"
+author: "Colin Busby"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: 
+    toc: yes
+    toc_depth: 5
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages(c("pacman","tidyverse","randomForest","parallel","rpart","readr","janitor","car","MASS","Hmisc","rstatix","GGally","performance","caret","lmerTest","lme4","lmeR","corrplot","PerformanceAnalytics","plotly","mlbench","see","BiocManager"))
+# library(tidyverse)
+# library(randomForest)
+# library(parallel)
+# library(rpart)
+# library(readr)
+# library(janitor)
+# library(car)
+# library(MASS)
+# library(Hmisc)
+# library(rstatix)
+# library(forcats)
+# library(GGally)
+# library(performance)
+# library(caret)
+# library(lmtest)
+# library(corrplot)
+# library(PerformanceAnalytics)
+# library(plotly)
+# library(mlbench)
+pacman::p_load(tidymodels,randomForest,parallel,rpart,readr,janitor,car,MASS,Hmisc,rstatix,GGally,performance,caret,lmerTest,lmtest,lme4,corrplot,PerformanceAnalytics,plotly,mlbench,see,patchwork,reshape,tidyverse)
+step <- stats::step
+```
+
+# Intro
+
+blahblahblah Hi
+
+Question - How do the various stats from the ESPN website explain the salaries of NBA players?
+
+Where data is from
+
+Variables explained
+
+## Data Exploration
+
+```{r}
+# Load dataset
+
+players <- read_csv("players.csv")
+active_p <- read_csv("active_players_2.csv")
+```
+
+```{r}
+# Structure/Dimensions of the data.frame
+str(active_p)
+```
+
+```{r}
+# Number of columns containing `NA` or `NaN`
+colSums(is.na(active_p))
+```
+
+## Data Cleaning
+
+```{r}
+#identifying the rows with NAs
+rownames(active_p)[apply(active_p, 2, anyNA)]
+
+#removing all `Salary` observations with NAs
+ap_cl <- active_p[!(is.na(active_p$Salary)), ]
+```
+
+```{r}
+# Checking for leftover `NA` after cleaning
+rownames(active_p)[apply(ap_cl, 2, anyNA)]
+```
+
+```{r}
+# Transforming Team,Position,College into factors
+ap_cl_f <- transform (
+  ap_cl,
+  fTeam = as.factor(Team),
+  fPosition = as.factor(Position),
+  fCollege = as.factor(College)
+)
+```
+
+```{r}
+# Rename `fCollege` factor level "nan" as "None"
+# levels(ap_cl_f$fCollege)[levels(ap_cl_f$fCollege)=="nan"] <- "None"
+#levels(ap_cl_f$fCollege)
+```
+
+```{r}
+str(ap_cl_f)
+```
+
+
+
+```{r}
+# Start with `ap_cl_f` data.frame, reclassify as tibble
+
+ap_tibble <- as_tibble(ap_cl_f)
+class(ap_tibble)
+```
+
+```{r}
+str(ap_tibble)
+```
+
+# Model Building
+
+### Initial Graphs
+
+```{r}
+# The diagonal consists of the densities of the three variables and the upper panels consist of the correlation coefficients between the variables.
+
+ggpairs(ap_tibble, columns = c(9,4,6,7), cardinality_threshold = NULL)
+```
+
+```{r}
+par(mfrow=c(1,2))
+histo_full<- ggplot(ap_tibble, aes(Salary)) +
+  geom_histogram(bins = 30)
+histo_red <- ggplot(ap_tibble, aes(log(Salary))) +
+  geom_histogram(bins = 30)
+gridExtra::grid.arrange(histo_full, histo_red, ncol=2)
+```
+
+
+### Full(Initial) Model
+
+```{r}
+summary(lm1 <- lm(Salary ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble))
+```
+
+```{r}
+shapiro.test(resid(lm1))
+bptest(lm1)
+```
+
+### Box Cox
+
+```{r}
+boxcox(lm1,lambda=seq(-1, 1, by=0.05))
+```
+
+```{r}
+BoxCoxTrans(ap_tibble$Salary)
+```
+
+### log(Full Model)
+
+```{r}
+summary(lm_l1 <- lm(log(Salary) ~ fTeam+fPosition+fCollege+Age+Height_i+Weight, data=ap_tibble))
+```
+
+```{r}
+shapiro.test(resid(lm_l1))
+bptest(lm_l1)
+```
+
+### Check for Polynomial Terms
+
+`Age`, `Height_i`, and `Weight` appear to be misspecified.
+
+```{r}
+crPlots(lm_l1)
+```
+
+```{r}
+summary(lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,4)+poly(Height_i,4)+poly(Weight,4),data=ap_tibble))
+summary(lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+poly(Weight,3),data=ap_tibble))
+summary(lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,data=ap_tibble))
+```
+
+The end result is that only `Age` has been misspecified, and has been re-specified as `poly(Age,3)`.
+
+```{r}
+# Resulting Full model with polynomial terms
+summary(lm_log1 <- lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble))
+```
+
+### Check for Outliers and High Leverage
+
+```{r}
+outlierTest(lm_log1)
+```
+
+```{r}
+highleverage <- function(x) {
+  p <- length(coefficients(x))
+  n <- length(fitted(x))
+  ratio <- p/n
+  plot(hatvalues(x), main="Index Plot of Ratio")
+  abline(h=c(2,3)*ratio, col="red", lty=2)
+  identify(1:n, hatvalues(x), names(hatvalues(x)))
+}
+highleverage(lm_log1)
+```
+
+```{r}
+cutoff <- 4/(nrow(ap_tibble)-length(lm_log1$coefficients)-2)
+plot(lm_log1, which=4,cook.levels=cutoff)
+abline(h=cutoff, lty=2, col="red")
+```
+
+```{r}
+#avPlots(lm_log1, ask=FALSE, id="identify")
+```
+
+```{r}
+influencePlot(lm_log1,main="Influence Plot", sub="Circle size is proportional to Cook's distance")
+```
+
+```{r}
+# Removal of outliers and high leverage points
+ap_tibble <- ap_tibble[-which(abs(rstandard(lm_log1)) > 2 | hatvalues(lm_log1) > .8),]
+```
+
+```{r}
+# Resulting Full model with polynomial terms
+summary(lm_log1 <- lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble))
+```
+
+```{r}
+shapiro.test(resid(lm_log1))
+bptest(lm_log1)
+```
+
+### Reduced Model
+
+```{r}
+# Removal of `fTeam` due to no significance
+summary(lm_log2 <- lm(log(Salary) ~ fPosition+fCollege+poly(Age,3)+Height_i+Weight,data=ap_tibble))
+```
+
+```{r}
+summary(lm_log3 <- lm(log(Salary) ~ fPosition+fCollege+poly(Age,3)+Weight,data=ap_tibble))
+```
+
+```{r}
+summary(lm_log4 <- lm(log(Salary) ~ fPosition+poly(Age,3)+Weight,data=ap_tibble))
+```
+
+```{r}
+anova(lm_log4,lm_log3,lm_log2,lm_log1)
+```
+
+### Stepwise Model Selection
+
+```{r}
+summary(lm_step <- step(lm_logsm <- lm(log(Salary) ~ fTeam+fPosition+fCollege+poly(Age,3)+Height_i+Weight,data=ap_tibble)))
+```
+
+```{r}
+shapiro.test(resid(lm_log3))
+bptest(lm_log3)
+```
+
+```{r}
+shapiro.test(resid(lm_step))
+bptest(lm_step)
+```
+
+
+
+### Logistic Regression
+
+#### Recoding for Logistic Regression
+
+```{r}
+# Calculate quantiles of Salary for good cutoff point
+quantile(ap_tibble$Salary, probs = seq(0,1,1/20))
+
+# Used 65% as cutoff
+ap_tibble <- ap_tibble %>% mutate(Salary.Dummy = if_else(Salary >= 8401762, 1, 0))
+
+# Transforming Team,Position,College into factors
+ap_tibble <- transform (
+  ap_tibble,
+  nTeam = as.numeric(fTeam),
+  nPosition = as.numeric(fPosition),
+  nCollege = as.numeric(fCollege),
+  fSalary.Dummy = as.factor(Salary.Dummy)
+)
+```
+
+#### Model Selection (glm)
+
+```{r}
+#cross validation
+set.seed(999)
+n <-nrow(ap_tibble)
+n
+floor(0.7*n)
+
+train <- sample(1:n, 311)
+
+tn <- ap_tibble[train,]
+test <- ap_tibble[-train,]
+```
+
+```{r}
+set.seed(999)
+summary(glmFit_full <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble, method="glm", trace = 0))
+confusionMatrix(glmFit_full)
+```
+
+```{r}
+set.seed(999)
+summary(glmFit_reduced <- train(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble, method="glmStepAIC", trace = 0))
+confusionMatrix(glmFit_reduced)
+```
+
+```{r}
+#comparing the plots
+# Rename variables
+
+plot(lm_log1, 1:2)
+
+plot(lm_log4, 1:2)
+
+hist(resid(lm_log1))
+hist(resid(lm_log4))
+
+
+par(mfrow=c(1,3), mar=c(4.5, 4.5, 2, 2))
+
+plot(ap_tibble$fPosition, rstandard(lm_log1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$fPosition, rstandard(lm_log4), xlab ="fposition", ylab = "residuals")
+
+plot(ap_tibble$Age, rstandard(lm_log1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Age, rstandard(lm_log4), xlab ="fposition", ylab = "residuals")
+
+plot(ap_tibble$Weight, rstandard(lm_log1), xlab ="fposition", ylab = "residuals")
+plot(ap_tibble$Weight, rstandard(lm_log4), xlab ="fposition", ylab = "residuals")
+
+#normality check 
+par(mfrow=c(1,2), mar=c(4.5, 4.5, 2, 2))
+plot(predict(lm_log1), ap_tibble$Salary,
+       xlab = "Fitted Values", ylab = "Salary")
+abline()
+lines(lowess(predict(lm_log1), ap_tibble$Salary), col='red')
+
+plot(predict(lm_log4), sqrt(ap_tibble$Salary),
+       xlab = "Fitted Values", ylab = "Salary")
+lines(lowess(predict(lm_log4), sqrt(ap_tibble$Salary)), col='red')
+
+plot(predict(lm_log1), ap_tibble$Weight,
+     xlab = "Fitted Values", ylab = "Weight")
+
+plot(predict(lm_log4), sqrt(ap_tibble$Weight),
+     xlab = "Fitted Values", ylab = "Weight")
+
+plot(predict(lm_log1), ap_tibble$Age,
+     xlab = "Fitted Values", ylab = "Age")
+
+plot(predict(lm_log4), sqrt(ap_tibble$Age),
+     xlab = "Fitted Values", ylab = "Age")
+```
+
+
+## Model Checking
+
+## Comparing Models
+
+`lm_log3` has smaller `R2` than `lm_log1` but has larger `adj.R2` than `lm_log1`.
+
+```{r}
+performance::compare_performance(lm_log1,lm_log2,lm_log3,lm_step, rank = TRUE)
+```
+
+## VIF
+
+```{r}
+round(vif(lm_step),2)
+round(vif(lm_log3),2)
+```
+
+## ROC/AUC
+```{r}
+set.seed(999)
+
+train <- sample(1:n, 311)
+
+glm_train1 <- glm(fSalary.Dummy ~ nTeam+nPosition+nCollege+poly(Age,3)+Height_i+Weight, data=ap_tibble, subset = train, family =  binomial)
+
+summary(glm_train1)
+
+ap_test <- ap_tibble[-train,]
+head(ap_test)
+
+probs_test <- predict(glm_train1, newdata = ap_test,
+                     type = "response")
+
+head(probs_test)
+
+
+length(probs_test)
+preds_test <- rep(0,12)
+preds_test[probs_test > 0.5] <- 1
+
+length(probs_test)
+length(preds_test)
+
+head(probs_test)
+head(preds_test)
+
+tb1<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
+addmargins(tb1)
+
+#Accuracy
+(tb1[1,1] + tb1[2,2]) / 36
+#Sensitivity
+tb1[2,2] / 19
+#Specificity
+tb1[1,1] / 17
+
+
+library(pROC)
+roc_full <- roc(ap_test$fSalary.Dummy, probs_test)
+plot(1 - roc_full$specificities, roc_full$sensitivities, type="l",
+       xlab = "1 - Specificity", ylab = "Sensitivity")
+# plot red point corresponding to 0.5 threshold:
+points(x = 1-(tb1[1,1] / 17), y = tb1[2,2] / 19, col="red", pch=19)
+abline(0, 1, lty=2)
+```
+
+```{r}
+set.seed(999)
+
+glm_train2 <- glm(fSalary.Dummy ~ nPosition+poly(Age,3)+Height_i+Weight, data=ap_tibble, subset = train, family =  binomial)
+
+summary(glm_train2)
+
+ap_test <- ap_tibble[-train,]
+head(ap_test)
+
+probs_test <- predict(glm_train2, newdata = ap_test,
+                     type = "response")
+
+head(probs_test)
+
+
+length(probs_test)
+preds_test <- rep(0,12)
+preds_test[probs_test > 0.5] <- 1
+
+length(probs_test)
+length(preds_test)
+
+head(probs_test)
+head(preds_test)
+
+tb2<- table(prediction = preds_test, actual = ap_test$fSalary.Dummy)
+addmargins(tb2)
+
+#Accuracy
+(tb2[1,1] + tb2[2,2]) / 36
+#Sensitivity
+tb2[2,2] / 19
+#Specificity
+tb2[1,1] / 17
+
+
+library(pROC)
+roc_reduced <- roc(ap_test$fSalary.Dummy, probs_test)
+plot(1 - roc_reduced$specificities, roc_reduced$sensitivities, type="l",
+       xlab = "1 - Specificity", ylab = "Sensitivity")
+# plot red point corresponding to 0.5 threshold:
+points(x = 1-(tb2[1,1] / 17), y = tb2[2,2] / 19, col="red", pch=19)
+abline(0, 1, lty=2)
+```
+
+```{r}
+auc(roc_full)
+```
+
+```{r}
+auc(roc_reduced)
+```
+
+
+## Plots
+
+```{r}
+par(mfrow=c(2,2), mar=c(4.5, 4.5, 2, 2))
+plot(lm_log3, 1:2)
+plot(lm_step, 1:2)
+```
+
+```{r}
+performance::check_model(lm_log3)
+```
+
+```{r}
+plot(hatvalues(lm_log3), rstandard(lm_log3),xlab='Leverage', ylab='Standardized Residuals')
+```
+
+
+
+```{r}
+performance::check_model(lm_step)
+```
+
+```{r}
+anova(lm_log4,lm_step,lm_log3,lm_log2,lm_log1)
+```
+
+## Final Model
+
+Backwards Elimination Reduced Model:
+
+$$log(\widehat{Salary}) = 11.50148+fPosition\pm fCollege+6.07923Age-3.89527Age^2-3.16991Age^3+0.01535Weight$$
+
+Step() Reduced Model:
+
+$$log(\widehat{Salary}) = 12.40672 \pm fPosition + 6.68504Age-3.14049Age^2-3.28484Age^3+0.01176Weight$$
+
+Loigistic Regression Model:
+
+$$fSalary.Dummy = 1.07995+0.20322nPosition+14.73302Age-12.62790Age^2-7.79748Age^3-0.98882Height_i+0.01659Weight$$
+
+### Prediction
+
+```{r}
+# James Harden SG 32 6.5 220 "Arizona State" 44310840
+
+newdata <- data.frame(fPosition='SG', Age=32, Weight = 220, fCollege='Arizona State')
+cat("lm_log3 prediction = $", exp(predict(lm_log3, newdata, type='response')), "\n")
+
+newdata <- data.frame(fPosition='SG', Age=32, Weight = 220, fCollege='Arizona State')
+cat("lm_step prediction = $", exp(predict(lm_step, newdata, type='response')), "\n")
+
+cat("Actual Salary = $ 44310840")
+```
+
+```{r}
+# Miles McBride Age = 20, Weight = 200, fPosition = PG fCollege = West Virginia, Salary = 925258
+newdata <- data.frame(fPosition='PG', Age=20, Weight = 200, fCollege = 'West Virginia')
+cat("lm_log3 prediction = $", exp(predict(lm_log3, newdata, type='response')), "\n")
+
+newdata <- data.frame(fPosition='PG', Age=20, Weight = 200, fCollege = 'West Virginia')
+cat("lm_step prediction = $",exp(predict(lm_step, newdata, type='response')), "\n")
+
+cat("Actual Salary = $ 925258")
+```
+
