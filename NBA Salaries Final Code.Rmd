@@ -9,22 +9,6 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
----
-title: "Salary MLR 2nd Draft"
-author: "Colin Busby"
-date: "`r Sys.Date()`"
-output:
-  pdf_document: 
-    toc: yes
-    toc_depth: 5
-editor_options: 
-  chunk_output_type: inline
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ```{r}
 #install.packages(c("pacman","tidyverse","randomForest","parallel","rpart","readr","janitor","car","MASS","Hmisc","rstatix","GGally","performance","caret","lmerTest","lme4","lmeR","corrplot","PerformanceAnalytics","plotly","mlbench","see","BiocManager"))
 # library(tidyverse)
