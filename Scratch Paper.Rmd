@@ -168,3 +168,41 @@ summary(lm1_log <- lm(log(Salary) ~ fTeam+fPosition+fCollege+Age+Height_i+Weight
 
 AIC(lm1, lm4, lmst)
 ```
+
+
+## Cross-validation
+
+```{r}
+# cross validation
+set.seed(999)
+n <-nrow(ap_tibble)
+n
+floor(0.7*n)
+
+train <- sample(1:n, 266, replace = FALSE)
+
+tn <- ap_tibble[train,]
+test <- ap_tibble[-train,]
+```
+
+```{r}
+# Backwards Stepwise
+
+summary(lm_test.step <- lm(log(Salary) ~ fPosition+poly(Age,3)+Weight,data=tn))
+
+predictions2 <- lm_test.step %>% predict(test)
+data.frame(R2 = R2(predictions, test$Salary),
+RMSE = RMSE(predictions, test$Salary),
+MAE = MAE(predictions, test$Salary))
+```
+
+```{r}
+# Backwards Elimination
+
+lm_test <- lm(log(Salary) ~ fPosition+fCollege+poly(Age,3)+Weight,data=tn)
+
+lm_test$xlevels[["fCollege"]] <- union(lm_test$xlevels[["fCollege"]], levels(test$fCollege))
+
+predictions <- lm_test %>% predict(test)
+data.frame(R2 = R2(predictions, test$Salary),RMSE = RMSE(predictions, test$Salary),MAE = MAE(predictions, test$Salary))
+```

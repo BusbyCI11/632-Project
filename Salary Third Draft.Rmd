@@ -127,14 +127,14 @@ ggpairs(ap_tibble, columns = c(9,4,6,7), cardinality_threshold = NULL)
 ```
 
 ```{r}
-ggplot(ap_tibble, aes(Salary)) +
+par(mfrow=c(1,2))
+histo_full<- ggplot(ap_tibble, aes(Salary)) +
   geom_histogram(bins = 30)
+histo_red <- ggplot(ap_tibble, aes(log(Salary))) +
+  geom_histogram(bins = 30)
+gridExtra::grid.arrange(histo_full, histo_red, ncol=2)
 ```
 
-```{r}
-ggplot(ap_tibble, aes(log(Salary))) +
-  geom_histogram(bins = 30)
-```
 
 ### Full(Initial) Model
 
@@ -270,6 +270,8 @@ bptest(lm_log3)
 shapiro.test(resid(lm_step))
 bptest(lm_step)
 ```
+
+
 
 ### Logistic Regression
 
@@ -510,7 +512,11 @@ plot(hatvalues(lm_log3), rstandard(lm_log3),xlab='Leverage', ylab='Standardized 
 performance::check_model(lm_step)
 ```
 
-## Final Model - Change
+```{r}
+anova(lm_log4,lm_step,lm_log3,lm_log2,lm_log1)
+```
+
+## Final Model
 
 Backwards Elimination Reduced Model:
 
@@ -559,13 +565,7 @@ https://www.r-bloggers.com/2021/07/easystats-quickly-investigate-model-performan
 https://stackoverflow.com/questions/44578920/r-how-to-reload-function-or-change-package-priority
 https://towardsdatascience.com/how-to-detect-unusual-observations-on-your-regression-model-with-r-de0eaa38bc5b#:~:text=You%20can%20compute%20the%20high,considers%20as%20high%2Dleverage%20points.
 
-
 ```{r}
 str(ap_tibble)
-```
-
-
-```{r}
-#influencePlot(lm_log3,main="Influence Plot", sub="Circle size is proportional to Cook's distance")
 ```
 
