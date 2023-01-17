@@ -36,3 +36,7 @@ Supplementary Datasets: Past Seasons NBA datasets: https://www.basketball-refere
 `Rebounds`: NUmber of rebounds by player during season
 
 `Assists`: Number of assists by player during season
+
+## STAT 632 Linear and Logistic Regression
+
+Simple linear regression, multiple linear regression models and logistic regression models.  Inference about model parameters and predictions, diagnostic, assumption checking, remedial measures about the model, and model building.  Emphasis on real data from science, engineering, and business. Computer-assisted analysis.
